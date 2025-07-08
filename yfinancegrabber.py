@@ -39,10 +39,13 @@ tickers = [
 
 # Date range
 start_date = '2005-07-06'
+
 end_pre_xlc = '2018-06-18'
 start_real_xlc = '2018-06-19'
+
 end_pre_xlre = '2015-10-07'
 start_real_xlre = '2015-10-08'
+
 end_date = '2025-07-06'
 
 # XLC launch weights from 2018-06
@@ -91,7 +94,8 @@ for ticker in tickers:
             custom_tickers = list(weights.index)
             prices = yf.download(custom_tickers, start=start_date, end=end_pre_xlc, interval='1d', auto_adjust=True)
             prices.to_csv('data/XLC_synthetic_prices_raw.csv')
-            returns = prices.pct_change()
+            close_prices = prices['Close']
+            returns = close_prices.pct_change()
 
             # Drop any tickers that failed
             available_tickers = [t for t in custom_tickers if t in returns.columns]
@@ -105,6 +109,7 @@ for ticker in tickers:
             # Download real XLC data (2018–2025)
             xlc_real = yf.download('XLC', start=start_real_xlc, end=end_date, interval='1d', auto_adjust=True)
             xlc_real.to_csv('data/XLC_real_prices_raw.csv')
+            close_prices = xlc_real['Close']
             xlc_real_returns = xlc_real.pct_change()
 
             # Combine data
@@ -130,6 +135,7 @@ for ticker in tickers:
             custom_tickers = list(weights.index)
             prices = yf.download(custom_tickers, start=start_date, end=end_pre_xlre, interval='1d', auto_adjust=True)
             prices.to_csv('data/XLRE_synthetic_prices_raw.csv')
+            close_prices = prices['Close']
             returns = prices.pct_change()
 
             # Drop failed tickers
@@ -143,7 +149,8 @@ for ticker in tickers:
 
             # Download real XLRE data
             xlre_real_prices = yf.download('XLRE', start=start_real_xlre, end=end_date, interval='1d', auto_adjust=True)
-            prices.to_csv('data/XLRE_real_prices_raw.csv')
+            xlre_real_prices.to_csv('data/XLRE_real_prices_raw.csv')
+            close_prices = xlre_real_prices['Close']
             xlre_real_returns = xlre_real_prices.pct_change()
 
             # Combine return series
