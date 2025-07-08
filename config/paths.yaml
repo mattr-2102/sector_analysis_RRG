@@ -1,0 +1,4 @@
+# important directories for reference in other files, mainly accessing/saving tables of data
+
+data_dir: data
+config_dir: config
