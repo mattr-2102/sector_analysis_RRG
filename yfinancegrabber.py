@@ -1,4 +1,5 @@
 import yfinance as yf
+import pandas as pd
 import time
 import sys
 import os
@@ -38,22 +39,135 @@ tickers = [
 
 # Date range
 start_date = '2005-07-06'
+end_pre_xlc = '2018-06-18'
+start_real_xlc = '2018-06-19'
+end_pre_xlre = '2015-10-07'
+start_real_xlre = '2015-10-08'
 end_date = '2025-07-06'
+
+# XLC launch weights from 2018-06
+xlc_weights = {
+    'META': 0.2096,
+    'GOOG': 0.1173,
+    'GOOGL': 0.1163,
+    'NFLX': 0.0505,
+    'T': 0.0491,
+    'CHTR': 0.0478,
+    'CMCSA': 0.0467,
+    'DIS': 0.0453,
+    'VZ': 0.0448,
+    'EA': 0.0381,
+    'PARA': 0.0170,
+    'LUMN': 0.0161
+}
+
+# XLRE launch weights October 2015-10
+xlre_weights = {
+    'SPG': 0.12,
+    'AMT': 0.0798,
+    'PSA': 0.075,
+    'CCI': 0.059,
+    'EQR': 0.0555,
+    'AVB': 0.0464,
+    'WY': 0.0432,
+    'EQIX': 0.0426,
+    'PLD': 0.0412,
+    'WELL': 0.0404
+}
 
 # Fetch and save data
 for ticker in tickers:
     print(f"\nFetching data for {ticker}...")
-    try:
-        data = yf.download(ticker, start=start_date, end=end_date, interval='1d')
-        if not data.empty:
-            data.to_csv(f'data/{ticker}_daily.csv')
-            print(f"Saved: data/{ticker}_daily.csv")
-        else:
-            print(f"Error: No data returned for {ticker}")
-    except Exception as e:
-        print(f"Error fetching {ticker}, doesn't exist or rate limited probably: {e}")
+
+    # XLC was reclassified from specific XLK and XLY stocks 2018-06-19
+    if ticker == 'XLC':
+        print("Handling XLC (custom pre-2018 logic)...")
+        try:
+            # Normalize weights
+            weights = pd.Series(xlc_weights)
+            weights /= weights.sum()
+
+            # Download synthetic ETF (2005–2018)
+            custom_tickers = list(weights.index)
+            prices = yf.download(custom_tickers, start=start_date, end=end_pre_xlc, interval='1d', auto_adjust=True)
+            prices.to_csv('data/XLC_synthetic_prices_raw.csv')
+            returns = prices.pct_change()
+
+            # Drop any tickers that failed
+            available_tickers = [t for t in custom_tickers if t in returns.columns]
+            weights = weights[available_tickers]
+            weights /= weights.sum()
+            returns = returns[available_tickers]
+
+            # Create weighted synthetic return stream
+            synthetic_xlc_returns = (returns * weights).sum(axis=1)
+
+            # Download real XLC data (2018–2025)
+            xlc_real = yf.download('XLC', start=start_real_xlc, end=end_date, interval='1d', auto_adjust=True)
+            xlc_real.to_csv('data/XLC_real_prices_raw.csv')
+            xlc_real_returns = xlc_real.pct_change()
+
+            # Combine data
+            xlc_full_returns = pd.concat([synthetic_xlc_returns, xlc_real_returns])
+
+            # Save CSVs
+            synthetic_xlc_returns.to_csv(f'data/XLC_synthetic_returns.csv')
+            xlc_full_returns.to_csv(f'data/XLC_daily.csv')
+
+            print("Saved synthetic and full stitched XLC return streams.")
+        except Exception as e:
+            print(f"Error handling XLC: {e}")
+
+    # XLRE was derived from XLF on 2015-10-08
+    elif ticker == 'XLRE':
+        print("Handling XLRE (custom pre-2015 logic)...")
+        try:
+            # Normalize weights
+            weights = pd.Series(xlre_weights)
+            weights /= weights.sum()
+
+            # donwload synthetic ETF
+            custom_tickers = list(weights.index)
+            prices = yf.download(custom_tickers, start=start_date, end=end_pre_xlre, interval='1d', auto_adjust=True)
+            prices.to_csv('data/XLRE_synthetic_prices_raw.csv')
+            returns = prices.pct_change()
+
+            # Drop failed tickers
+            available_tickers = [t for t in custom_tickers if t in returns.columns]
+            weights = weights[available_tickers]
+            weights /= weights.sum()
+            returns = returns[available_tickers]
+
+            # Compute synthetic XLRE returns
+            synthetic_xlre_returns = (returns * weights).sum(axis=1)
+
+            # Download real XLRE data
+            xlre_real_prices = yf.download('XLRE', start=start_real_xlre, end=end_date, interval='1d', auto_adjust=True)
+            prices.to_csv('data/XLRE_real_prices_raw.csv')
+            xlre_real_returns = xlre_real_prices.pct_change()
+
+            # Combine return series
+            xlre_full_returns = pd.concat([synthetic_xlre_returns, xlre_real_returns])
+
+            # Save to files
+            synthetic_xlre_returns.to_csv(f'data/XLRE_synthetic_returns.csv')
+            xlre_full_returns.to_csv(f'data/XLRE_daily.csv')
+
+            print("Saved synthetic and full XLRE return streams.")
+        except Exception as e:
+            print(f"Error handling XLRE: {e}")
+
+    else:
+        try:
+            data = yf.download(ticker, start=start_date, end=end_date, interval='1d', auto_adjust=True)
+            if not data.empty:
+                data.to_csv(f'data/{ticker}_daily.csv')
+                print(f"Saved: data/{ticker}_daily.csv")
+            else:
+                print(f"Error: No data returned for {ticker}")
+        except Exception as e:
+            print(f"Error fetching {ticker}: {e}")
     
-    # Delay to avoid rate limits
     time.sleep(2)
     
     
