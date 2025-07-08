@@ -1,6 +1,21 @@
 import yfinance as yf
 import time
+import sys
 import os
+
+# Ensure config directory exists
+os.makedirs('config', exist_ok=True)
+
+# Path to the API keys file
+api_keys_path = os.path.join('config', 'api_keys.yaml')
+
+# Create the file if it doesn't exist, then exit
+if not os.path.exists(api_keys_path):
+    with open(api_keys_path, 'w') as f:
+        f.write("# Add your API keys here. For example:\n")
+        f.write("# tiingo: YOUR_TIINGO_API_KEY\n")
+    print("api_keys.yaml created in /config. Input keys if applicable and restart the program.")
+    sys.exit(0)
 
 # Create output directory if it doesn't exist
 os.makedirs('data', exist_ok=True)
