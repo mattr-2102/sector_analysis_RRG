@@ -1,0 +1,10 @@
+# Ignore all CSV and YAML files
+*.csv
+*.yaml
+
+# Ignore in subdirectories
+**/*.csv
+**/*.yaml
+
+# Ignore virtual environment folder
+intermarket/
