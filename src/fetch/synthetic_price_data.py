@@ -1,49 +1,74 @@
 import yfinance as yf
 import pandas as pd
+import requests
 import time
 import sys
 import os
 
-from config.paths import get_paths
+from config.helper import get_paths, key
 
 paths = get_paths()
 data_dir = paths['data_dir']
 
-# Path to the API keys file
-api_keys_path = os.path.join('../../config', 'api_keys.yaml')
+def fetchandpatch_synthetics(ticker, custom_list, start_date, customdate1, customdate2, end_date, api_endpoint, api_key):
 
-def fetchandpatch_synthetics(ticker, custom_list, start_date, customdate1, customdate2, end_date):
-    
-    # normalize weights
-    weights = pd.Series(custom_list)
-    weights /= weights.sum()
+    all_data = []
 
     # download synthetic ETF
-    custom_tickers = list(weights.index)
-    prices = yf.download(custom_tickers, start=start_date, end=customdate1, interval='1d', auto_adjust=True)
-    prices.to_csv(os.path.join(data_dir, f'{ticker}_synthetic_raw.csv'))
-    close_prices = prices['Close']
-    returns = close_prices.pct_change()
+    for tempticker in custom_list:
+        try:
+            print(f"Fetching holding {tempticker}, part of {ticker}...")
+            raw = requests.get(f"{api_endpoint}/daily/{tempticker}/prices?startDate={start_date}&endDate={customdate1}&format=json&resampleFreq=daily&token={api_key}")
+            raw.raise_for_status()
+            jraw = raw.json()
 
-    # Drop any tickers that failed
-    available_tickers = [t for t in custom_tickers if t in returns.columns]
-    weights = weights[available_tickers]
+            prices = pd.DataFrame(jraw)
+            prices['date'] = pd.to_datetime(prices['date'])
+            prices.set_index('date', inplace=True)
+            prices = prices[['close']]
+            prices.rename(columns={'close': tempticker}, inplace= True)
+            
+            all_data.append(prices)
+        except Exception as e:
+            print(f"Error fetching {tempticker}: e")
+    
+    combined = pd.concat(all_data, axis=1)
+    combined.dropna(axis=0, how='any', inplace=True)
+    combined.to_csv(os.path.join(data_dir, f'{ticker}_synthetic_prices_raw.csv'))
+
+    # normalize weights
+    weights = pd.Series(custom_list)
+    weights = weights[combined.columns]
     weights /= weights.sum()
-    returns = returns[available_tickers]
 
-    # Create weighted synthetic return stream
+    # calc daily returns
+    returns = combined.pct_change().dropna()
+
+    # create weighted synthetic returns
     synthetic_returns = (returns * weights).sum(axis=1)
-
-    # Download real XLC data (2018–2025)
-    real = yf.download(ticker, start=customdate2, end=end_date, interval='1d', auto_adjust=True)
-    real.to_csv(os.path.join(data_dir, f'{ticker}_real_raw.csv'))
-    close_prices = real['Close']
-    real_returns = real.pct_change()
-
-
-    # Combine data
-    full_returns = pd.concat([synthetic_returns, real_returns])
-
-    # Save CSVs
+    synthetic_returns.name = f"{ticker}"
     synthetic_returns.to_csv(os.path.join(data_dir, f'{ticker}_synthetic_returns.csv'))
-    full_returns.to_csv(os.path.join(data_dir, f'{ticker}_daily.csv'))
+
+    # Download real data
+    try:
+        print(f"Fetching real {ticker} data non-synthetic...")
+        raw = requests.get(f"{api_endpoint}/daily/{ticker}/prices?startDate={customdate2}&endDate={end_date}&format=json&resampleFreq=daily&token={api_key}")
+        jraw = raw.json()
+
+        real = pd.DataFrame(jraw)
+        real['date'] = pd.to_datetime(real['date'])
+        real.set_index('date', inplace=True)
+        real.to_csv(os.path.join(data_dir, f'{ticker}_real_raw.csv'))
+
+        real = real[['close']]
+        real.rename(columns={'close': ticker}, inplace=True)
+        real_returns = real.pct_change().dropna()
+        real_returns.name = f'{ticker}'
+
+        full_returns = pd.concat([synthetic_returns, real_returns])
+        full_returns.to_csv(os.path.join(data_dir, f'{ticker}_daily.csv'))
+
+        print(f"Saved full stitched returns for {ticker}.")
+
+    except Exception as e:
+        print(f"Error fetching real {ticker}: {e}")

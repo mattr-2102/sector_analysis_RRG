@@ -5,19 +5,22 @@ import time
 import sys
 import os
 
-from config.paths import get_paths
+from config.helper import get_paths, key
 from src.fetch.synthetic_price_data import fetchandpatch_synthetics
 
 paths = get_paths()
 data_dir = paths['data_dir']
 config_dir = paths['config_dir']
 
-# Path to the API keys file
-api_keys_path = os.path.join(config_dir, 'api_keys.yaml')
+# API keys
+api_key = key('tiingo')
+api_endpoint = 'https://api.tiingo.com/tiingo'
 
 # Date range
 start_date = '2005-07-06'
 end_date = '2025-07-06'
+
+columns = ["date", "close", "volume"]
 
 # List of sector ETF tickers, each holds roughly 30-70 stocks (X = SPDR family ETFs, L = Large-cap Exposure i.e. S&P500 based which is large-cap)
 tickers = [
@@ -95,16 +98,27 @@ def fetch():
                     start_date=start_date, 
                     customdate1=params['customdate1'], 
                     customdate2=params['customdate2'], 
-                    end_date=end_date)
+                    end_date=end_date,
+                    api_endpoint=api_endpoint, 
+                    api_key=api_key)
 
                 print(f"Saved synthetic and full stitched {ticker} return streams.")
             except Exception as e:
                 print(f"Error calling synthetic ETF patching function for {ticker}: {e}")
         else:
             try:
-                data = yf.download(ticker, start=start_date, end=end_date, interval='1d', auto_adjust=True)
+                raw = requests.get(f"{api_endpoint}/daily/{ticker}/prices?startDate={start_date}&endDate={end_date}&format=json&resampleFreq=daily&token={api_key}")
+                jraw = raw.json()
+                data = pd.DataFrame(jraw)
+                data['date'] = pd.to_datetime(data['date'])
+                data.set_index('date', inplace=True)
+                data.to_csv(os.path.join(data_dir, f'{ticker}_daily_raw.csv'))
+                data = data[['close']]
+                data.rename(columns={'close': ticker}, inplace=True)
+                data_returns = data.pct_change().dropna()
+                data_returns.name = f'{ticker}'
                 if not data.empty:
-                    data.to_csv(os.path.join(data_dir, f'{ticker}_daily.csv'))
+                    data_returns.to_csv(os.path.join(data_dir, f'{ticker}_daily.csv'))
                     print(f"Saved: {ticker}_daily.csv")
                 else:
                     print(f"Error: No data returned for {ticker}")
@@ -115,6 +129,3 @@ def fetch():
         
 if __name__ == "__main__":
     fetch()
-
-    
-#need to transition to Tiingo, then start messing with data. can either start with coorelation or RRG

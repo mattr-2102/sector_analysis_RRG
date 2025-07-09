@@ -12,3 +12,10 @@ def get_paths():
     # Convert relative paths to absolute based on local machine
     abs_paths = {key: os.path.join(PROJECT_ROOT, path) for key, path in rel_paths.items()}
     return abs_paths
+
+def key(source):
+    path = get_paths()
+    with open(os.path.join(path['config_dir'], 'api_keys.yaml'), 'r') as f:
+        api_keys = yaml.safe_load(f)
+    api_key = api_keys.get(source)
+    return api_key
