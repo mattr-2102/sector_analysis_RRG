@@ -1,14 +1,10 @@
-import yfinance as yf
 import pandas as pd
 import requests
-import time
-import sys
 import os
 
-from config.helper import get_paths, key
+from config.helper import get_data_dir
 
-paths = get_paths()
-data_dir = paths['data_dir']
+data_dir = get_data_dir()
 
 def fetchandpatch_synthetics(ticker, custom_list, start_date, customdate1, customdate2, end_date, api_endpoint, api_key):
 
@@ -30,7 +26,7 @@ def fetchandpatch_synthetics(ticker, custom_list, start_date, customdate1, custo
             
             all_data.append(prices)
         except Exception as e:
-            print(f"Error fetching {tempticker}: e")
+            print(f"Error fetching {tempticker}: {e}")
     
     combined = pd.concat(all_data, axis=1)
     combined.dropna(axis=0, how='any', inplace=True)
@@ -38,14 +34,16 @@ def fetchandpatch_synthetics(ticker, custom_list, start_date, customdate1, custo
 
     # normalize weights
     weights = pd.Series(custom_list)
-    weights = weights[combined.columns]
-    weights /= weights.sum()
+    # Keep only weights for tickers actually present in the data
+    valid_weights = weights[weights.index.isin(combined.columns)]
+    valid_weights /= valid_weights.sum()
 
     # calc daily returns
     returns = combined.pct_change().dropna()
+    returns = returns[valid_weights.index]
 
     # create weighted synthetic returns
-    synthetic_returns = (returns * weights).sum(axis=1)
+    synthetic_returns = returns.dot(valid_weights)
     synthetic_returns.name = f"{ticker}"
     synthetic_returns.to_csv(os.path.join(data_dir, f'{ticker}_synthetic_returns.csv'))
 
@@ -66,7 +64,7 @@ def fetchandpatch_synthetics(ticker, custom_list, start_date, customdate1, custo
         real_returns.name = f'{ticker}'
 
         full_returns = pd.concat([synthetic_returns, real_returns])
-        full_returns.to_csv(os.path.join(data_dir, f'{ticker}_daily.csv'))
+        full_returns.to_csv(os.path.join(data_dir, f'{ticker}_daily_pctchange.csv'))
 
         print(f"Saved full stitched returns for {ticker}.")
 

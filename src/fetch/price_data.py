@@ -1,16 +1,13 @@
 import requests
 import pandas as pd
 import time
-import sys
 import os
 
-from config.helper import get_paths, key
+from config.helper import key, get_data_dir
 from src.fetch.synthetic_price_data import fetchandpatch_synthetics
 
-paths = get_paths()
-data_dir = paths['data_dir']
-config_dir = paths['config_dir']
-
+# dir of data files
+data_dir = get_data_dir()
 # API keys
 api_key = key('tiingo')
 api_endpoint = 'https://api.tiingo.com/tiingo'
