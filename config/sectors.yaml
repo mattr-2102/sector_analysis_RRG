@@ -1,0 +1,14 @@
+sector_etfs:
+  - XLE   # Energy
+  - XLB   # Materials
+  - XLI   # Industrials
+  - XLU   # Utilities
+  - XLV   # Health Care
+  - XLF   # Financials
+  - XLY   # Consumer Discretionary
+  - XLP   # Consumer Staples
+  - XLK   # Technology
+  - XLC   # Communication Services
+  - XLRE  # Real Estate
+
+benchmark: SPY

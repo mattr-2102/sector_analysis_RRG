@@ -21,8 +21,8 @@ def fetchandpatch_synthetics(ticker, custom_list, start_date, customdate1, custo
             prices = pd.DataFrame(jraw)
             prices['date'] = pd.to_datetime(prices['date'])
             prices.set_index('date', inplace=True)
-            prices = prices[['close']]
-            prices.rename(columns={'close': tempticker}, inplace= True)
+            prices = prices[['adjClose']]
+            prices.rename(columns={'adjClose': tempticker}, inplace= True)
             
             all_data.append(prices)
         except Exception as e:
@@ -64,7 +64,7 @@ def fetchandpatch_synthetics(ticker, custom_list, start_date, customdate1, custo
         real_returns.name = f'{ticker}'
 
         full_returns = pd.concat([synthetic_returns, real_returns])
-        full_returns.to_csv(os.path.join(data_dir, f'{ticker}_daily_pctchange.csv'))
+        full_returns.to_csv(os.path.join(data_dir, f'{ticker}_daily.csv'))
 
         print(f"Saved full stitched returns for {ticker}.")
 

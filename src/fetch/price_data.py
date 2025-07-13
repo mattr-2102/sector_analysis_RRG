@@ -3,36 +3,23 @@ import pandas as pd
 import time
 import os
 
-from config.helper import key, get_data_dir
+from config.helper import key, get_data_dir, get_sector_config
 from src.fetch.synthetic_price_data import fetchandpatch_synthetics
 
-# dir of data files
+# dir of data files and sector list
 data_dir = get_data_dir()
 # API keys
 api_key = key('tiingo')
 api_endpoint = 'https://api.tiingo.com/tiingo'
+config = get_sector_config()
+tickers = [config['benchmark']] + config['sector_etfs']
+
 
 # Date range
 start_date = '2005-07-06'
 end_date = '2025-07-06'
 
 columns = ["date", "close", "volume"]
-
-# List of sector ETF tickers, each holds roughly 30-70 stocks (X = SPDR family ETFs, L = Large-cap Exposure i.e. S&P500 based which is large-cap)
-tickers = [
-    'SPY',  # The S&P, idk
-    'XLE',  # Energy (Exxon, Chevron...)
-    'XLB',  # Materials (Basic Materials) (Linde, Sherwin-Williams...)
-    'XLI',  # Industrials (GE Aero, RTX, CAT...)
-    'XLU',  # Utilities (NextEra Energy, Southern comp, Duke...)
-    'XLV',  # Healthcare (Vitality/Vitality of Health) (Eli Lilly, UnitedHealth, JnJ...)
-    'XLF',  # Financials (Berkshire, JPMorgan, Visa...)
-    'XLY',  # Consumer Discretionary (Y arbitrary, Youth, etc) (Amazon, Tesla, Home Depot...)
-    'XLP',  # Consumer Staples (Pantry/Provisions) (Costco, PnG, Walmart...)
-    'XLK',  # Information Technology (K arbitrary, Key tech firms) (Apple, Microsoft, Nvidia...)
-    'XLC',  # Communication Services (Meta, Google...)
-    'XLRE'  # Real Estate (ProLogis, American Tower, Welltower...)
-]
 
 # XLC custom weights
 xlc_weights = {
@@ -77,7 +64,7 @@ synthetic_params = {
     }
 }
 
-def fetch():
+def fetch(tickers = tickers):
     # Fetch and save data
     for ticker in tickers:
         print(f"\nFetching data for {ticker}...")
@@ -121,7 +108,7 @@ def fetch():
             except Exception as e:
                 print(f"Error fetching {ticker}: {e}")
         
-        time.sleep(5)
+        time.sleep(3)
         
 if __name__ == "__main__":
     fetch()
