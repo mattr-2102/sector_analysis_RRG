@@ -27,10 +27,11 @@ def main():
     # rank_relative_strength_momentum(lookback_days=30)
     # plot_relative_strength_momentum(target='XLK')
     # plot_sector_relative_strength_momentum()
-    
-    plot_rrg()
-    rank_relative_strength()
-    rank_relative_strength_momentum()
+    lookback = 30
+    momentum = 7
+    plot_rrg(lookback_days=lookback, momentum_window=momentum)
+    rank_relative_strength(lookback_days=lookback)
+    rank_relative_strength_momentum(lookback_days=lookback, momentum_window=momentum)
 
 if __name__ == "__main__":
     main()

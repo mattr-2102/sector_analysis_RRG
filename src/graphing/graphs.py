@@ -1,13 +1,16 @@
 import pandas as pd
+import numpy as np
+import math
 import plotly.graph_objects as go
 import plotly.io as pio
 import plotly.express as px
-from scipy.stats import linregress
+from scipy.interpolate import make_interp_spline
+from scipy.signal import savgol_filter
 from typing import Optional, List
 
 from src.process.relative_strength import get_relative_strength
 from src.process.rs_momentum import get_relative_strength_momentum
-from config.helper import get_sector_config
+from config.helper import get_sector_config, get_resource
 config = get_sector_config()
 
 
@@ -167,10 +170,8 @@ def plot_sector_relative_strength_momentum(tickers: Optional[List[str]] = config
     fig.show()
 
 def plot_rrg(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days=30, momentum_window=5, normalize=True):
-    colors = px.colors.qualitative.Plotly
+    colors = px.colors.qualitative.Dark24
     traces = []
-    color_map = {}
-
     all_x, all_y = [], []
 
     for i, ticker in enumerate(tickers):
@@ -179,106 +180,113 @@ def plot_rrg(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: st
 
         try:
             rs_series = get_relative_strength(ticker, benchmark, lookback_days, normalize)
-            color = colors[i % len(colors)]
-            color_map[ticker] = color
-            
-            # Only use the last momentum_window + 1 points to construct tail
-            tail_rs_series = rs_series.tail(momentum_window + 1)
-
-            # Make sure we have enough data
-            if len(tail_rs_series) < momentum_window + 1:
+            if len(rs_series) < momentum_window + 1:
                 continue
 
-            # Initialize lists
-            tail_x, tail_y = [], []
+            color = colors[i % len(colors)]
 
-            # Loop to create each tail point (1 less than full tail window)
-            # Use existing momentum function instead
-            for t in range(momentum_window):
-                sub_rs_series = tail_rs_series.iloc[t:t + momentum_window + 1]
-                if len(sub_rs_series) < momentum_window + 1:
-                    continue
+            # Get RS momentum and relative strength values
+            tail_x = get_relative_strength_momentum(
+                target=ticker,
+                benchmark=benchmark,
+                lookback_days=lookback_days,
+                momentum_window=momentum_window,
+                normalize=normalize,
+                return_series=True
+            )
+            tail_y = rs_series.tail(len(tail_x)).tolist()
+            
+            tail_x = tail_x[-momentum_window:]
+            tail_y = tail_y[-momentum_window:]
 
-                slope = get_relative_strength_momentum(
-                    target=ticker,
-                    benchmark=benchmark,
-                    lookback_days=lookback_days - (momentum_window - t),  # adjust lookback
-                    momentum_window=momentum_window,
-                    normalize=normalize
-                )
+            if len(tail_x) != len(tail_y):
+                print(f"Skipping {ticker} due to length mismatch.")
+                continue
 
-                rs_val = sub_rs_series.iloc[-1]
-                tail_x.append(slope)
-                tail_y.append(rs_val)
-
-
-            # Store for axis limits
             all_x.extend(tail_x)
             all_y.extend(tail_y)
 
-            # Tail points (lighter, smaller)
+            # Interpolate using cubic spline
+            x_vals = np.array(tail_x)
+            y_vals = np.array(tail_y)
+
+            # Sort x for interpolation (necessary)
+            sort_idx = np.argsort(x_vals)
+            x_sorted = x_vals[sort_idx]
+            y_sorted = y_vals[sort_idx]
+
+            # Generate smoothed x/y values
+            x_smooth = np.linspace(x_sorted.min(), x_sorted.max(), 100)
+            spl = make_interp_spline(x_sorted, y_sorted, k=2)
+            y_smooth = spl(x_smooth)
+
+            traces.append(go.Scatter(
+                x=tail_x,
+                y=tail_y,
+                mode='lines+markers',
+                line=dict(shape='spline', color=color, width=4),
+                marker=dict(size=6, color='white', opacity=1, line=dict(color=color, width=2)),
+                name=ticker,
+                legendgroup=ticker,
+                showlegend=False
+            ))
+            
+            # Trail points
             traces.append(go.Scatter(
                 x=tail_x[:-1],
                 y=tail_y[:-1],
                 mode='markers',
-                marker=dict(size=6, color=color, opacity=0.5, line=dict(width=0)),
-                name=f"{ticker} trail",
-                showlegend=False,
-                hoverinfo='skip'
+                marker=dict(size=8, color='white', opacity=1, line=dict(color=color, width=5)),
+                name=ticker,  # Use same name
+                legendgroup=ticker,  # Group them
+                showlegend=False
             ))
 
-            # Most recent (main) point
+            # --- Latest head point on top of everything ---
             traces.append(go.Scatter(
                 x=[tail_x[-1]],
                 y=[tail_y[-1]],
                 mode='markers+text',
-                marker=dict(size=14, color=color, line=dict(width=1, color='black')),
+                marker=dict(size=16, color=color, line=dict(width=1.5, color='black')),
                 text=[ticker],
                 textposition="top center",
-                name=ticker
+                name=ticker,
+                legendgroup=ticker,
             ))
-            
-            traces.append(go.Scatter(
-                x=tail_x,
-                y=tail_y,
-                mode='lines',
-                line=dict(color=color, width=2, dash='dot'),
-                name=f"{ticker} path",
-                showlegend=False,
-                hoverinfo='skip'
-            ))
-
+                                    
         except Exception as e:
             print(f"Error processing {ticker}: {e}")
+            
+    # Calculate padding
+    x_range = max(all_x) - min(all_x)
+    y_range = max(all_y) - min(all_y)
 
-    x_min, x_max = min(all_x) - 0.01, max(all_x) + 0.01
-    y_min, y_max = min(all_y) - 0.01, max(all_y) + 0.01
+    x_pad = x_range * 0.2
+    y_pad = y_range * 0.2
 
+    x_min, x_max = min(all_x) - x_pad, max(all_x) + x_pad
+    y_min, y_max = min(all_y) - y_pad, max(all_y) + y_pad
+    
     fig = go.Figure(traces)
 
-    # Add quadrant fills
-    fig.add_shape(type="rect", x0=x_min, x1=0, y0=y_min, y1=1,
-                  fillcolor="rgba(255, 0, 0, 0.1)", layer="below", line_width=0)
-    fig.add_shape(type="rect", x0=0, x1=x_max, y0=y_min, y1=1,
-                  fillcolor="rgba(255, 255, 0, 0.1)", layer="below", line_width=0)
-    fig.add_shape(type="rect", x0=x_min, x1=0, y0=1, y1=y_max,
-                  fillcolor="rgba(0, 0, 255, 0.1)", layer="below", line_width=0)
-    fig.add_shape(type="rect", x0=0, x1=x_max, y0=1, y1=y_max,
-                  fillcolor="rgba(0, 255, 0, 0.1)", layer="below", line_width=0)
+    # Quadrants
+    fig.add_shape(type="rect", x0=x_min, x1=0, y0=y_min, y1=1, fillcolor="rgba(255, 0, 0, 0.1)", layer="below", line_width=0)
+    fig.add_shape(type="rect", x0=0, x1=x_max, y0=y_min, y1=1, fillcolor="rgba(255, 255, 0, 0.1)", layer="below", line_width=0)
+    fig.add_shape(type="rect", x0=x_min, x1=0, y0=1, y1=y_max, fillcolor="rgba(0, 0, 255, 0.1)", layer="below", line_width=0)
+    fig.add_shape(type="rect", x0=0, x1=x_max, y0=1, y1=y_max, fillcolor="rgba(0, 255, 0, 0.1)", layer="below", line_width=0)
 
-    # Crosshairs at (0, 1)
-    fig.add_shape(type="line", x0=x_min, x1=x_max, y0=1.0, y1=1.0,
-                  line=dict(color="black", width=1.5, dash="dot"))
-    fig.add_shape(type="line", x0=0, x1=0, y0=y_min, y1=y_max,
-                  line=dict(color="black", width=1.5, dash="dot"))
+    # Crosshairs
+    fig.add_shape(type="line", x0=x_min, x1=x_max, y0=1.0, y1=1.0, line=dict(color="black", width=1.5, dash="dot"))
+    fig.add_shape(type="line", x0=0, x1=0, y0=y_min, y1=y_max, line=dict(color="black", width=1.5, dash="dot"))
 
+    # Layout
     fig.update_layout(
         title=f"Relative Rotation Graph (RRG) with Tails (vs {benchmark})",
         xaxis_title="RS Momentum",
         yaxis_title="Relative Strength",
         template="plotly_white",
-        width=950,
-        height=650,
+        width=1425,
+        height=975,
         xaxis=dict(range=[x_min, x_max]),
         yaxis=dict(range=[y_min, y_max])
     )
