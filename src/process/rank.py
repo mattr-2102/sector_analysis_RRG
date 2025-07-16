@@ -7,13 +7,22 @@ from config.helper import get_sector_config
 
 config = get_sector_config()
 
-def rank_relative_strength(tickers: List[str] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days: int = 30, normalize: bool = True, display: bool = True) -> pd.DataFrame:
+def rank_relative_strength(
+    tickers: List[str] = config['sector_etfs'],
+    benchmark: str = config['benchmark'],
+    lookback_days: int = 30,
+    normalize: bool = True,
+    display: bool = True,
+    timeframe: str = 'daily'
+) -> pd.DataFrame:
     rs_values = {}
 
     for ticker in tickers:
         if ticker == benchmark:
             continue
-        rs_series = get_relative_strength(ticker, benchmark, lookback_days=lookback_days, normalize=normalize)
+
+        rs_series = get_relative_strength(ticker, benchmark, lookback_days=lookback_days, normalize=normalize, timeframe=timeframe)
+
         rs_values[ticker] = rs_series.iloc[-1]
 
     rs_df = pd.DataFrame.from_dict(rs_values, orient='index', columns=['RelativeStrength'])
@@ -27,7 +36,15 @@ def rank_relative_strength(tickers: List[str] = config['sector_etfs'], benchmark
     return rs_df
 
 
-def rank_relative_strength_momentum(tickers: List[str] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days: int = 30, momentum_window: int = 5, normalize: bool = True, display: bool = True) -> pd.DataFrame:
+def rank_relative_strength_momentum(
+    tickers: List[str] = config['sector_etfs'],
+    benchmark: str = config['benchmark'],
+    lookback_days: int = 30,
+    momentum_window: int = 5,
+    normalize: bool = True,
+    display: bool = True,
+    timeframe: str = 'daily'
+) -> pd.DataFrame:
     momentum_values = {}
 
     for ticker in tickers:
@@ -39,7 +56,8 @@ def rank_relative_strength_momentum(tickers: List[str] = config['sector_etfs'], 
                 benchmark=benchmark,
                 lookback_days=lookback_days,
                 momentum_window=momentum_window,
-                normalize=normalize
+                normalize=normalize,
+                timeframe=timeframe
             )
             momentum_values[ticker] = slope
         except Exception as e:

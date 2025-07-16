@@ -8,3 +8,4 @@ pandas-ta
 requests
 plotly
 scipy
+statsmodels

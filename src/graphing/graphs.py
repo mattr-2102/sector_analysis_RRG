@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import math
 import plotly.graph_objects as go
 import plotly.io as pio
 import plotly.express as px
@@ -10,6 +9,7 @@ from typing import Optional, List
 
 from src.process.relative_strength import get_relative_strength
 from src.process.rs_momentum import get_relative_strength_momentum
+from src.process.lead_lag import sector_lead_lag_matrix, granger_lead_lag_matrix
 from config.helper import get_sector_config, get_resource
 config = get_sector_config()
 
@@ -17,8 +17,12 @@ config = get_sector_config()
 
 pio.renderers.default = "browser"
 
-def plot_relative_strength(target: str, benchmark: str = config['benchmark'], lookback_days: Optional[int] = 30, normalize: bool = True, save_path: Optional[str] = None) -> None:    
-    rs_series = get_relative_strength(target, benchmark, lookback_days=lookback_days, normalize=normalize)
+def plot_relative_strength(target: str, benchmark: str = config['benchmark'], lookback_days: Optional[int] = 30, normalize: bool = True, save_path: Optional[str] = None, timeframe: str = 'daily') -> None:    
+    
+    if timeframe not in ['daily','weekly', 'monthly']:
+        raise ValueError("freq must be 'daily', 'weekly', or 'monthly'")
+    
+    rs_series = get_relative_strength(target, benchmark, lookback_days=lookback_days, normalize=normalize, timeframe=timeframe)
 
     fig = go.Figure()
 
@@ -38,8 +42,10 @@ def plot_relative_strength(target: str, benchmark: str = config['benchmark'], lo
             annotation_position='top left'
         )
 
+    chartinterval = {'daily': 'days', 'weekly': 'weeks', 'monthly': 'months'}[timeframe]
+
     fig.update_layout(
-        title=f"Relative Strength: {target} vs {benchmark}" + (" (Normalized)" if normalize else ""),
+        title=f"Relative Strength: {target} vs {benchmark}" + (f" over {lookback_days} {chartinterval}" if lookback_days else "") + (" (Normalized)" if normalize else ""),
         xaxis_title="Date",
         yaxis_title="Relative Strength",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
@@ -54,13 +60,17 @@ def plot_relative_strength(target: str, benchmark: str = config['benchmark'], lo
     else:
         fig.show()
 
-def plot_sector_relative_strength(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days: Optional[int] = 30, normalize: bool = True):
+def plot_sector_relative_strength(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days: Optional[int] = 30, normalize: bool = True, timeframe: str = 'daily'):
+    
+    if timeframe not in ['daily','weekly', 'monthly']:
+        raise ValueError("freq must be 'daily', 'weekly', or 'monthly'")
+    
     all_rs = {}
 
     for ticker in tickers:
         if ticker == benchmark:
             continue
-        rs = get_relative_strength(ticker, benchmark, lookback_days, normalize)
+        rs = get_relative_strength(ticker, benchmark, lookback_days, normalize, timeframe=timeframe)
         all_rs[ticker] = rs
 
     # Build figure
@@ -85,8 +95,10 @@ def plot_sector_relative_strength(tickers: Optional[List[str]] = config['sector_
             line=dict(color='black', width=2, dash='dash'),
         )
 
+    chartinterval = {'daily': 'days', 'weekly': 'weeks', 'monthly': 'months'}[timeframe]
+
     fig.update_layout(
-        title=f"Relative Strength vs {benchmark} (Last {lookback_days} Days)",
+        title=f"Relative Strength vs {benchmark} (Last {lookback_days} {chartinterval})",
         xaxis_title="Date",
         yaxis_title="Relative Strength" + (" (Normalized)" if normalize else ""),
         hovermode="x unified",
@@ -98,10 +110,12 @@ def plot_sector_relative_strength(tickers: Optional[List[str]] = config['sector_
 
     fig.show()
 
-def plot_relative_strength_momentum(target: str, benchmark: str = config['benchmark'], lookback_days: int = 30, momentum_window: int = 5, normalize: bool = True, save_path: Optional[str] = None) -> None:
-    rs_series = get_relative_strength(
-        target, benchmark, lookback_days=lookback_days, normalize=normalize
-    )
+def plot_relative_strength_momentum(target: str, benchmark: str = config['benchmark'], lookback_days: int = 30, momentum_window: int = 5, normalize: bool = True, save_path: Optional[str] = None, timeframe: str = 'daily') -> None:
+    
+    if timeframe not in ['daily','weekly', 'monthly']:
+        raise ValueError("freq must be 'daily', 'weekly', or 'monthly'")
+    
+    rs_series = get_relative_strength(target, benchmark, lookback_days=lookback_days, normalize=normalize, timeframe=timeframe)
 
     # Trim to momentum window
     rs_series = rs_series.tail(momentum_window)
@@ -115,8 +129,10 @@ def plot_relative_strength_momentum(target: str, benchmark: str = config['benchm
         name=f"{target} vs {benchmark}"
     ))
 
+    chartinterval = {'daily': 'days', 'weekly': 'weeks', 'monthly': 'months'}[timeframe]
+
     fig.update_layout(
-        title=f"RS Momentum: {target} vs {benchmark} (Timeframe: {lookback_days}days, Window: {momentum_window}, Normalized: {normalize})",
+        title=f"RS Momentum: {target} vs {benchmark} (Timeframe: {lookback_days} {chartinterval}, Window: {momentum_window}, Normalized: {normalize})",
         xaxis_title="Date",
         yaxis_title="Relative Strength",
         template="plotly_white",
@@ -130,7 +146,11 @@ def plot_relative_strength_momentum(target: str, benchmark: str = config['benchm
     else:
         fig.show()
 
-def plot_sector_relative_strength_momentum(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days: int = 30, momentum_window: int = 5, normalize: bool = True):
+def plot_sector_relative_strength_momentum(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days: int = 30, momentum_window: int = 5, normalize: bool = True, timeframe: str = 'daily'):
+    
+    if timeframe not in ['daily','weekly', 'monthly']:
+        raise ValueError("freq must be 'daily', 'weekly', or 'monthly'")
+    
     momentum_scores = {}
 
     for ticker in tickers:
@@ -142,7 +162,8 @@ def plot_sector_relative_strength_momentum(tickers: Optional[List[str]] = config
                 benchmark=benchmark,
                 lookback_days=lookback_days,
                 momentum_window=momentum_window,
-                normalize=normalize
+                normalize=normalize,
+                timeframe=timeframe
             )
             momentum_scores[ticker] = score
         except Exception as e:
@@ -158,8 +179,10 @@ def plot_sector_relative_strength_momentum(tickers: Optional[List[str]] = config
         marker=dict(color='steelblue'),
     ))
 
+    chartinterval = {'daily': 'days', 'weekly': 'weeks', 'monthly': 'months'}[timeframe]
+
     fig.update_layout(
-        title=f"Relative Strength Momentum (vs {benchmark}) (Timeframe: {lookback_days}days, Window: {momentum_window}, Normalized: {normalize})",
+        title=f"Relative Strength Momentum (vs {benchmark}) (Timeframe: {lookback_days} {chartinterval}, Window: {momentum_window}, Normalized: {normalize})",
         xaxis_title="Momentum Score",
         yaxis_title="Sector ETF",
         template="plotly_white",
@@ -169,7 +192,10 @@ def plot_sector_relative_strength_momentum(tickers: Optional[List[str]] = config
 
     fig.show()
 
-def plot_rrg(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days=30, momentum_window=5, normalize=True):
+def plot_rrg(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days=30, momentum_window=5, normalize=True, timeframe: str = 'daily'):
+    if timeframe not in ['daily','weekly', 'monthly']:
+        raise ValueError("freq must be 'daily', 'weekly', or 'monthly'")
+    
     colors = px.colors.qualitative.Dark24
     traces = []
     all_x, all_y = [], []
@@ -192,7 +218,8 @@ def plot_rrg(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: st
                 lookback_days=lookback_days,
                 momentum_window=momentum_window,
                 normalize=normalize,
-                return_series=True
+                return_series=True,
+                timeframe=timeframe
             )
             tail_y = rs_series.tail(len(tail_x)).tolist()
             
@@ -205,20 +232,6 @@ def plot_rrg(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: st
 
             all_x.extend(tail_x)
             all_y.extend(tail_y)
-
-            # Interpolate using cubic spline
-            x_vals = np.array(tail_x)
-            y_vals = np.array(tail_y)
-
-            # Sort x for interpolation (necessary)
-            sort_idx = np.argsort(x_vals)
-            x_sorted = x_vals[sort_idx]
-            y_sorted = y_vals[sort_idx]
-
-            # Generate smoothed x/y values
-            x_smooth = np.linspace(x_sorted.min(), x_sorted.max(), 100)
-            spl = make_interp_spline(x_sorted, y_sorted, k=2)
-            y_smooth = spl(x_smooth)
 
             traces.append(go.Scatter(
                 x=tail_x,
@@ -279,9 +292,11 @@ def plot_rrg(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: st
     fig.add_shape(type="line", x0=x_min, x1=x_max, y0=1.0, y1=1.0, line=dict(color="black", width=1.5, dash="dot"))
     fig.add_shape(type="line", x0=0, x1=0, y0=y_min, y1=y_max, line=dict(color="black", width=1.5, dash="dot"))
 
+    chartinterval = {'daily': 'days', 'weekly': 'weeks', 'monthly': 'months'}[timeframe]
+    
     # Layout
     fig.update_layout(
-        title=f"Relative Rotation Graph (RRG) with Tails (vs {benchmark})",
+        title=f"Relative Rotation Graph (RRG) with Tails (vs {benchmark} \n ({lookback_days} {chartinterval} back with {momentum_window} {chartinterval} window))",
         xaxis_title="RS Momentum",
         yaxis_title="Relative Strength",
         template="plotly_white",
@@ -292,3 +307,105 @@ def plot_rrg(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: st
     )
 
     fig.show()
+
+def plot_sector_lead_lag_matrix(
+    sectors: Optional[List[str]] = None,
+    timeframe: str = 'daily',
+    max_lag: int = 10,
+    show: bool = True,
+    save_path: Optional[str] = None,
+    color_scale: str = 'RdBu',
+    zmin: Optional[int] = None,
+    zmax: Optional[int] = None,
+    **kwargs
+):
+    """
+    Plot a heatmap of the cross-correlation lead-lag matrix for the given sectors.
+    """
+    if sectors is None:
+        sectors = list(config['sector_etfs'])
+    lag_matrix = sector_lead_lag_matrix(sectors=sectors, timeframe=timeframe, max_lag=max_lag, **kwargs)
+    lag_matrix = lag_matrix.astype(float)
+    if zmin is None:
+        zmin = -max_lag
+    if zmax is None:
+        zmax = max_lag
+    title = f"Sector Cross-Correlation Lead-Lag Matrix (Timeframe: {timeframe}, Max Lag: {max_lag})"
+    fig = px.imshow(
+        lag_matrix,
+        x=lag_matrix.columns,
+        y=lag_matrix.index,
+        color_continuous_scale=color_scale,
+        zmin=zmin,
+        zmax=zmax,
+        labels=dict(x="Laggard", y="Leader", color="Lag (periods)")
+    )
+    fig.update_layout(title=title, width=900, height=800)
+    if save_path:
+        fig.write_image(save_path)
+    if show:
+        fig.show()
+    return fig
+
+def plot_granger_lead_lag_matrix(
+    sectors: Optional[List[str]] = None,
+    timeframe: str = 'daily',
+    max_lag: int = 10,
+    test: str = 'ssr_chi2test',
+    plot: str = 'pvalue',  # 'pvalue' or 'lag'
+    alpha: float = 0.05,
+    mask_nonsignificant: bool = False,
+    title: Optional[str] = None,
+    show: bool = True,
+    save_path: Optional[str] = None,
+    color_scale: str = 'Viridis',
+    zmin: Optional[float] = None,
+    zmax: Optional[float] = None,
+    **kwargs
+):
+    """
+    Plot a heatmap of the Granger causality lead-lag matrix for the given sectors.
+    """
+    if sectors is None:
+        sectors = list(config['sector_etfs'])
+    granger_matrix = granger_lead_lag_matrix(sectors=sectors, timeframe=timeframe, max_lag=max_lag, test=test, **kwargs)
+    if plot == 'pvalue':
+        data = granger_matrix.map(lambda x: x[0] if isinstance(x, tuple) else np.nan).astype(float)
+        if mask_nonsignificant:
+            data = data.where(data <= alpha)
+        if zmin is None:
+            zmin = 0
+        if zmax is None:
+            zmax = 1
+        colorbar_label = f"Min p-value ({test})"
+        if not title:
+            title = f"Granger Causality Min p-value Matrix (Timeframe: {timeframe}, Max Lag: {max_lag})"
+    elif plot == 'lag':
+        data = granger_matrix.applymap(lambda x: x[1] if isinstance(x, tuple) else np.nan).astype(float)
+        if mask_nonsignificant:
+            pvals = granger_matrix.applymap(lambda x: x[0] if isinstance(x, tuple) else np.nan).astype(float)
+            data = data.where(pvals <= alpha)
+        if zmin is None:
+            zmin = 1
+        if zmax is None:
+            zmax = max_lag
+        colorbar_label = f"Best Lag (periods)"
+        if not title:
+            title = f"Granger Causality Best Lag Matrix (Timeframe: {timeframe}, Max Lag: {max_lag})"
+    else:
+        raise ValueError("plot must be 'pvalue' or 'lag'")
+    fig = px.imshow(
+        data,
+        x=data.columns,
+        y=data.index,
+        color_continuous_scale=color_scale,
+        zmin=zmin,
+        zmax=zmax,
+        labels=dict(x="Laggard", y="Leader", color=colorbar_label)
+    )
+    fig.update_layout(title=title, width=900, height=800)
+    if save_path:
+        fig.write_image(save_path)
+    if show:
+        fig.show()
+    return fig

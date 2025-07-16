@@ -4,12 +4,13 @@ from src.process.relative_strength import get_relative_strength
 from scipy.stats import linregress
 
 
-def get_relative_strength_momentum(target: str, benchmark: str, lookback_days: int = 30, momentum_window: Optional[int] = 5, normalize: bool = True, method: str = "slope", return_series: bool = False) -> float:
+def get_relative_strength_momentum(target: str, benchmark: str, lookback_days: int = 30, momentum_window: Optional[int] = 5, normalize: bool = True, method: str = "slope", return_series: bool = False, timeframe: str = 'daily') -> float:
     rs_series = get_relative_strength(
         target=target,
         benchmark=benchmark,
         lookback_days=lookback_days,
-        normalize=normalize
+        normalize=normalize,
+        timeframe=timeframe
     )
 
     if rs_series.empty or len(rs_series) < momentum_window:

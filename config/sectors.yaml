@@ -11,4 +11,8 @@ sector_etfs:
   - XLC   # Communication Services
   - XLRE  # Real Estate
 
+synthetic_etfs:
+  - XLRE
+  - XLC
+
 benchmark: SPY

@@ -66,6 +66,9 @@ synthetic_params = {
 
 def fetch(tickers = tickers):
     # Fetch and save data
+    if isinstance(tickers, str):
+        tickers = [tickers]
+    
     for ticker in tickers:
         print(f"\nFetching data for {ticker}...")
 

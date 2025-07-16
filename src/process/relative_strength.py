@@ -2,11 +2,30 @@ import pandas as pd
 from typing import Optional
 from src.process.returns import get_cumulative_returns
 
-def get_relative_strength(target: str, benchmark: str, lookback_days: Optional[int] = None, normalize: bool = True) -> pd.Series:
-    target_cum = get_cumulative_returns(target)
-    benchmark_cum = get_cumulative_returns(benchmark)
+def get_relative_strength(target: str, benchmark: str, lookback_days: Optional[int] = None, normalize: bool = True, timeframe: str = 'daily') -> pd.Series:
+    target_cum = get_cumulative_returns(target, timeframe)
+    benchmark_cum = get_cumulative_returns(benchmark, timeframe)
 
-    aligned = target_cum.join(benchmark_cum, lsuffix='_target', rsuffix='_benchmark', how='inner')
+    # Ensure both series have proper names for identification
+    target_cum.name = f"{target}_target"
+    benchmark_cum.name = f"{benchmark}_benchmark"
+    
+    # Use concat with outer join to preserve all dates, then forward fill to handle missing values
+    # This ensures we don't lose data due to different trading calendars
+    aligned = pd.concat([target_cum, benchmark_cum], axis=1, join='outer')
+    
+    # Forward fill any missing values (this handles cases where one ticker trades on a day the other doesn't)
+    aligned = aligned.ffill()
+    
+    # Drop any rows where we still have NaN values (should be minimal after forward fill)
+    aligned = aligned.dropna()
+    
+    # Validate that we have data and benchmark values are non-zero
+    if aligned.empty:
+        raise ValueError(f"No aligned data available for {target} vs {benchmark}")
+    
+    if (aligned.iloc[:, 1] <= 0).any():
+        raise ValueError(f"Benchmark {benchmark} contains zero or negative values, which would cause division errors")
 
     if lookback_days is not None:
         aligned = aligned.tail(lookback_days + 1)
