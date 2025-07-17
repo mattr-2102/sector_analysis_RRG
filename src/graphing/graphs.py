@@ -10,6 +10,7 @@ from typing import Optional, List
 from src.process.relative_strength import get_relative_strength
 from src.process.rs_momentum import get_relative_strength_momentum
 from src.process.lead_lag import sector_lead_lag_matrix, granger_lead_lag_matrix
+from src.process.volatility import get_volatility_data
 from config.helper import get_sector_config, get_resource
 config = get_sector_config()
 
@@ -409,3 +410,77 @@ def plot_granger_lead_lag_matrix(
     if show:
         fig.show()
     return fig
+
+
+def plot_volatility_heatmap(
+    tickers: Optional[List[str]] = None,
+    window: int = 20,
+    show: bool = True,
+    save_path: Optional[str] = None,
+    color_scale: str = 'RdBu',
+    zmin: Optional[float] = None,
+    zmax: Optional[float] = None,
+    **kwargs
+):
+    """
+    Plot heatmaps of volatility z-scores across daily, weekly, and monthly timeframes.
+    """
+    if tickers is None:
+        tickers = list(config['sector_etfs'])
+    vol_df = get_volatility_data(tickers=tickers, window=window, **kwargs)
+    
+    # Create heatmaps for each timeframe
+    timeframes = ['DailyZVol', 'WeeklyZVol', 'MonthlyZVol']
+    timeframe_names = ['Daily', 'Weekly', 'Monthly']
+    figs = []
+    
+    for tf, tf_name in zip(timeframes, timeframe_names):
+        if tf not in vol_df.columns:
+            continue
+            
+        # Prepare data for heatmap
+        tf_data = vol_df[tf].dropna()
+        
+        # Create heatmap data - reshape for single column heatmap
+        heatmap_data = tf_data.to_numpy().reshape(-1, 1)
+        ticker_labels = tf_data.index.tolist()
+        
+        # Create heatmap
+        fig = px.imshow(
+            heatmap_data,
+            x=['Volatility Z-Score'],
+            y=ticker_labels,
+            color_continuous_scale=color_scale,
+            zmin=zmin,
+            zmax=zmax,
+            labels=dict(x="", y="Ticker", color="Volatility Z-Score"),
+            aspect="auto"
+        )
+        
+        fig.update_layout(
+            title=f"{tf_name} Volatility Z-Scores (Window: {window})",
+            width=400,
+            height=600,
+            template="plotly_white"
+        )
+        
+        # Update colorbar
+        fig.update_coloraxes(
+            colorbar=dict(
+                title="Z-Score",
+            )
+        )
+        
+        if save_path:
+            # Create filename with timeframe
+            base_path = save_path.replace('.png', '').replace('.jpg', '').replace('.html', '')
+            tf_save_path = f"{base_path}_{tf_name.lower()}.png"
+            fig.write_image(tf_save_path)
+            print(f"Volatility heatmap saved to {tf_save_path}")
+        
+        if show:
+            fig.show()
+        
+        figs.append(fig)
+    
+    return figs

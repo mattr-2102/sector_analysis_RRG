@@ -10,9 +10,12 @@ from src.fetch.synthetic_price_data import fetchandpatch_synthetics
 data_dir = get_data_dir()
 # API keys
 api_key = key('tiingo')
+poly_api_key = key('polygon')
 api_endpoint = 'https://api.tiingo.com/tiingo'
+stock_api_endpoint = 'https://api.polygon.io/v2/aggs/ticker/'
+chain_api_endpoint = 'https://api.polygon.io/v3/snapshot/options/'
 config = get_sector_config()
-tickers = [config['benchmark']] + config['sector_etfs']
+etf_tickers = [config['benchmark']] + config['sector_etfs']
 
 
 # Date range
@@ -64,13 +67,92 @@ synthetic_params = {
     }
 }
 
-def fetch(tickers = tickers):
+def fetch_polygon_stock(ticker):
+    """
+    Fetch stock data using Polygon API for non-ETF tickers
+    """
+    print(f'Fetching {ticker} using Polygon API...')
+    try:
+        all_results = []
+        next_url = f"{stock_api_endpoint}{ticker}/range/1/day/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apikey={poly_api_key}"
+        
+        # Loop through all pages
+        while next_url:
+            print(f"Fetching page for {ticker}...")
+            raw = requests.get(next_url)
+            jraw = raw.json()
+            
+            if jraw.get('status') != 'OK':
+                print(f"Error: API returned status {jraw.get('status')} for {ticker}")
+                break
+                
+            results = jraw.get('results', [])
+            if not results:
+                break
+                
+            all_results.extend(results)
+            
+            # Check for next page
+            next_url = jraw.get('next_url')
+            if next_url:
+                # Add API key to next_url if it doesn't have it
+                if 'apikey=' not in next_url:
+                    next_url += f"&apikey={poly_api_key}"
+            
+            # Small delay to avoid rate limiting
+            time.sleep(0.1)
+        
+        if all_results:
+            # Convert to DataFrame
+            data = pd.DataFrame(all_results)
+            
+            # Convert timestamp from unix milliseconds to datetime (UTC)
+            data['date'] = pd.to_datetime(data['t'], unit='ms', utc=True)
+            data.set_index('date', inplace=True)
+            
+            # Rename columns to descriptive names
+            data = data.rename(columns={
+                'v': 'volume',
+                'c': 'close', 
+                'o': 'open',
+                'h': 'high',
+                'l': 'low'
+            })
+            
+            # Save raw data
+            data.to_csv(os.path.join(data_dir, f'{ticker}_daily_raw.csv'))
+            
+            # Extract close prices and rename column
+            data = data[['close']]  # 'c' is close price in Polygon API
+            data.rename(columns={'close': ticker}, inplace=True)
+            
+            # Calculate returns
+            data_returns = data.pct_change().dropna()
+            data_returns.name = f'{ticker}'
+            
+            # Save processed data
+            data_returns.to_csv(os.path.join(data_dir, f'{ticker}_daily.csv'))
+            print(f"Saved: {ticker}_daily.csv ({len(all_results)} records)")
+        else:
+            print(f"Error: No data returned for {ticker}")
+            
+    except Exception as e:
+        print(f"Error fetching {ticker} from Polygon: {e}")
+
+def fetch(tickers = etf_tickers):
     # Fetch and save data
     if isinstance(tickers, str):
         tickers = [tickers]
     
     for ticker in tickers:
         print(f"\nFetching data for {ticker}...")
+
+        # Check if ticker is in the etf_tickers list
+        if ticker not in etf_tickers:
+            print(f'{ticker} is not in ETF list, using Polygon API...')
+            fetch_polygon_stock(ticker)
+            time.sleep(0.1)
+            continue
 
         # Many ETFs were reclassified or edited, skewing data
         if ticker in synthetic_params:
@@ -112,6 +194,3 @@ def fetch(tickers = tickers):
                 print(f"Error fetching {ticker}: {e}")
         
         time.sleep(3)
-        
-if __name__ == "__main__":
-    fetch()

@@ -45,7 +45,6 @@ def get_resampled_data(ticker: str, freq: str = 'weekly', save: bool = True):
         'high': 'max',
         'low': 'min',
         'close': 'last',
-        'adjClose': 'last',
         'volume': 'sum'
     }).dropna()
 
