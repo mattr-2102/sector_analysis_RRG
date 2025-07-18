@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 from src.fetch.price_data import fetch
 from config.helper import get_data_file, get_sector_config
+from src.fetch.update_data import update_data
 
 config = get_sector_config()
 synth_tickers = config['synthetic_etfs']
@@ -11,6 +12,8 @@ def get_resampled_data(ticker: str, freq: str = 'weekly', save: bool = True):
     if freq not in ['weekly', 'monthly']:
         raise ValueError("freq must be 'weekly' or 'monthly'")
 
+    update_data(ticker)
+    
     if ticker in synth_tickers:
         get_resampled_synth_data(ticker=ticker, freq=freq, save=save)
         return
@@ -64,6 +67,7 @@ def get_resampled_data(ticker: str, freq: str = 'weekly', save: bool = True):
             print(f"Warning: No returns data generated for {ticker}")
 
 def get_resampled_synth_data(ticker: str, freq: str = 'weekly', save: bool = True):
+    update_data(ticker)
     file_suffix_ret = {'weekly': '_weekly.csv', 'monthly': '_monthly.csv'}[freq]
     
     returns_output_path = get_data_file(ticker + file_suffix_ret)

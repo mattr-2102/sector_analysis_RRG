@@ -15,7 +15,7 @@ from src.process.rank import rank_volatility
 from src.process.lead_lag import cross_correlation_lead_lag, sector_lead_lag_matrix
 
 config = get_sector_config()
-sector = 'XLU'
+sector = 'XLK'
 numgrab = 10
 sector_holdings = get_sector_tickers(sector=sector, limit=numgrab)
 
@@ -42,7 +42,7 @@ def main():
     timeframe = 'daily'
     plot_rrg(lookback_days=lookback, momentum_window=momentum, timeframe=timeframe)    
     plot_rrg(tickers=sector_holdings, benchmark=sector, lookback_days=lookback, momentum_window=momentum, timeframe=timeframe)    
-    plot_volatility_heatmap(tickers=sector_holdings)
+    plot_volatility_heatmap(tickers=sector_holdings, raw_volatility=True)
     
     # plot_rrg(lookback_days=30, momentum_window=momentum, timeframe=timeframe)
     # plot_rrg(lookback_days=10, momentum_window=momentum, timeframe=timeframe)

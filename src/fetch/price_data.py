@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import time
 import os
+from datetime import datetime
 
 from config.helper import key, get_data_dir, get_sector_config
 from src.fetch.synthetic_price_data import fetchandpatch_synthetics
@@ -13,14 +14,14 @@ api_key = key('tiingo')
 poly_api_key = key('polygon')
 api_endpoint = 'https://api.tiingo.com/tiingo'
 stock_api_endpoint = 'https://api.polygon.io/v2/aggs/ticker/'
+stock_reference_api_endpoint = 'https://api.polygon.io/v3/reference/tickers/'
 chain_api_endpoint = 'https://api.polygon.io/v3/snapshot/options/'
 config = get_sector_config()
 etf_tickers = [config['benchmark']] + config['sector_etfs']
 
-
 # Date range
-start_date = '2005-07-06'
-end_date = '2025-07-06'
+default_start_date = '2005-07-06'
+default_end_date = datetime.now().strftime('%Y-%m-%d')
 
 columns = ["date", "close", "volume"]
 
@@ -67,10 +68,8 @@ synthetic_params = {
     }
 }
 
-def fetch_polygon_stock(ticker):
-    """
-    Fetch stock data using Polygon API for non-ETF tickers
-    """
+def fetch_polygon_stock(ticker, start_date=default_start_date, end_date=default_end_date, update=False):
+
     print(f'Fetching {ticker} using Polygon API...')
     try:
         all_results = []
@@ -82,7 +81,7 @@ def fetch_polygon_stock(ticker):
             raw = requests.get(next_url)
             jraw = raw.json()
             
-            if jraw.get('status') != 'OK':
+            if jraw.get('status') not in ['OK', 'DELAYED']:
                 print(f"Error: API returned status {jraw.get('status')} for {ticker}")
                 break
                 
@@ -108,6 +107,8 @@ def fetch_polygon_stock(ticker):
             
             # Convert timestamp from unix milliseconds to datetime (UTC)
             data['date'] = pd.to_datetime(data['t'], unit='ms', utc=True)
+            # Normalize to date-only to match sector ETF indexing
+            data['date'] = pd.to_datetime(data['date'].dt.normalize())
             data.set_index('date', inplace=True)
             
             # Rename columns to descriptive names
@@ -120,18 +121,37 @@ def fetch_polygon_stock(ticker):
             })
             
             # Save raw data
-            data.to_csv(os.path.join(data_dir, f'{ticker}_daily_raw.csv'))
+            raw_path = os.path.join(data_dir, f'{ticker}_daily_raw.csv')
+            daily_path = os.path.join(data_dir, f'{ticker}_daily.csv')
+            # Append logic
+            if update and os.path.exists(raw_path):
+                old_raw = pd.read_csv(raw_path, parse_dates=['date'], index_col='date')
+                data = data[~data.index.isin(old_raw.index)]
+                if not data.empty:
+                    data = pd.concat([old_raw, data]).sort_index()
+                else:
+                    data = old_raw
+            if not data.empty:
+                data.to_csv(raw_path)
             
             # Extract close prices and rename column
-            data = data[['close']]  # 'c' is close price in Polygon API
-            data.rename(columns={'close': ticker}, inplace=True)
+            close_df = data[['close']].copy()
+            close_df.rename(columns={'close': ticker}, inplace=True)
             
             # Calculate returns
-            data_returns = data.pct_change().dropna()
+            data_returns = close_df.pct_change().dropna()
             data_returns.name = f'{ticker}'
             
             # Save processed data
-            data_returns.to_csv(os.path.join(data_dir, f'{ticker}_daily.csv'))
+            if update and os.path.exists(daily_path):
+                old_daily = pd.read_csv(daily_path, parse_dates=['date'], index_col='date')
+                data_returns = data_returns[~data_returns.index.isin(old_daily.index)]
+                if not data_returns.empty:
+                    data_returns = pd.concat([old_daily, data_returns]).sort_index()
+                else:
+                    data_returns = old_daily
+            if not data_returns.empty:
+                data_returns.to_csv(daily_path)
             print(f"Saved: {ticker}_daily.csv ({len(all_results)} records)")
         else:
             print(f"Error: No data returned for {ticker}")
@@ -139,7 +159,7 @@ def fetch_polygon_stock(ticker):
     except Exception as e:
         print(f"Error fetching {ticker} from Polygon: {e}")
 
-def fetch(tickers = etf_tickers):
+def fetch(tickers=etf_tickers, start_date=default_start_date, end_date=default_end_date, update=False):
     # Fetch and save data
     if isinstance(tickers, str):
         tickers = [tickers]
@@ -150,7 +170,7 @@ def fetch(tickers = etf_tickers):
         # Check if ticker is in the etf_tickers list
         if ticker not in etf_tickers:
             print(f'{ticker} is not in ETF list, using Polygon API...')
-            fetch_polygon_stock(ticker)
+            fetch_polygon_stock(ticker, start_date, end_date, update)
             time.sleep(0.1)
             continue
 
@@ -168,7 +188,9 @@ def fetch(tickers = etf_tickers):
                     customdate2=params['customdate2'], 
                     end_date=end_date,
                     api_endpoint=api_endpoint, 
-                    api_key=api_key)
+                    api_key=api_key,
+                    update=update
+                )
 
                 print(f"Saved synthetic and full stitched {ticker} return streams.")
             except Exception as e:
@@ -180,13 +202,31 @@ def fetch(tickers = etf_tickers):
                 data = pd.DataFrame(jraw)
                 data['date'] = pd.to_datetime(data['date'])
                 data.set_index('date', inplace=True)
-                data.to_csv(os.path.join(data_dir, f'{ticker}_daily_raw.csv'))
+                raw_path = os.path.join(data_dir, f'{ticker}_daily_raw.csv')
+                daily_path = os.path.join(data_dir, f'{ticker}_daily.csv')
+                # Append logic
+                if update and os.path.exists(raw_path):
+                    old_raw = pd.read_csv(raw_path, parse_dates=['date'], index_col='date')
+                    data = data[~data.index.isin(old_raw.index)]
+                    if not data.empty:
+                        data = pd.concat([old_raw, data]).sort_index()
+                    else:
+                        data = old_raw
+                if not data.empty:
+                    data.to_csv(raw_path)
                 data = data[['close']]
                 data.rename(columns={'close': ticker}, inplace=True)
                 data_returns = data.pct_change().dropna()
                 data_returns.name = f'{ticker}'
-                if not data.empty:
-                    data_returns.to_csv(os.path.join(data_dir, f'{ticker}_daily.csv'))
+                if update and os.path.exists(daily_path):
+                    old_daily = pd.read_csv(daily_path, parse_dates=['date'], index_col='date')
+                    data_returns = data_returns[~data_returns.index.isin(old_daily.index)]
+                    if not data_returns.empty:
+                        data_returns = pd.concat([old_daily, data_returns]).sort_index()
+                    else:
+                        data_returns = old_daily
+                if not data_returns.empty:
+                    data_returns.to_csv(daily_path)
                     print(f"Saved: {ticker}_daily.csv")
                 else:
                     print(f"Error: No data returned for {ticker}")

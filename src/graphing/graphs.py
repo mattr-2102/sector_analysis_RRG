@@ -12,6 +12,7 @@ from src.process.rs_momentum import get_relative_strength_momentum
 from src.process.lead_lag import sector_lead_lag_matrix, granger_lead_lag_matrix
 from src.process.volatility import get_volatility_data
 from config.helper import get_sector_config, get_resource
+from src.fetch.update_data import update_data
 config = get_sector_config()
 
 
@@ -70,6 +71,7 @@ def plot_sector_relative_strength(tickers: Optional[List[str]] = config['sector_
 
     for ticker in tickers:
         if ticker == benchmark:
+            update_data(ticker)
             continue
         rs = get_relative_strength(ticker, benchmark, lookback_days, normalize, timeframe=timeframe)
         all_rs[ticker] = rs
@@ -156,6 +158,7 @@ def plot_sector_relative_strength_momentum(tickers: Optional[List[str]] = config
 
     for ticker in tickers:
         if ticker == benchmark:
+            update_data(ticker)
             continue
         try:
             score = get_relative_strength_momentum(
@@ -203,6 +206,7 @@ def plot_rrg(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: st
 
     for i, ticker in enumerate(tickers):
         if ticker == benchmark:
+            update_data(ticker)
             continue
 
         try:
@@ -420,18 +424,36 @@ def plot_volatility_heatmap(
     color_scale: str = 'RdBu',
     zmin: Optional[float] = None,
     zmax: Optional[float] = None,
+    raw_volatility: bool = False,
     **kwargs
 ):
     """
-    Plot heatmaps of volatility z-scores across daily, weekly, and monthly timeframes.
+    Plot heatmaps of volatility across daily, weekly, and monthly timeframes.
+    
+    Args:
+        tickers: List of ticker symbols
+        window: Rolling window for volatility calculation
+        show: Whether to display the plots
+        save_path: Path to save the plots
+        color_scale: Color scale for the heatmap
+        zmin, zmax: Min/max values for color scale
+        raw_volatility: If True, plot raw annualized volatility; if False, plot z-scores (default: False)
+        **kwargs: Additional arguments passed to get_volatility_data
     """
     if tickers is None:
         tickers = list(config['sector_etfs'])
-    vol_df = get_volatility_data(tickers=tickers, window=window, **kwargs)
+    vol_df = get_volatility_data(tickers=tickers, window=window, raw_volatility=raw_volatility, **kwargs)
     
-    # Create heatmaps for each timeframe
-    timeframes = ['DailyZVol', 'WeeklyZVol', 'MonthlyZVol']
-    timeframe_names = ['Daily', 'Weekly', 'Monthly']
+    # Choose which columns to plot based on raw_volatility parameter
+    if raw_volatility:
+        timeframes = ['DailyVol', 'WeeklyVol', 'MonthlyVol']
+        timeframe_names = ['Daily Volatility', 'Weekly Volatility', 'Monthly Volatility']
+        value_type = "Annualized Volatility"
+    else:
+        timeframes = ['DailyZVol', 'WeeklyZVol', 'MonthlyZVol']
+        timeframe_names = ['Daily Z-Score', 'Weekly Z-Score', 'Monthly Z-Score']
+        value_type = "Z-Score"
+    
     figs = []
     
     for tf, tf_name in zip(timeframes, timeframe_names):
@@ -448,17 +470,17 @@ def plot_volatility_heatmap(
         # Create heatmap
         fig = px.imshow(
             heatmap_data,
-            x=['Volatility Z-Score'],
+            x=[value_type],
             y=ticker_labels,
             color_continuous_scale=color_scale,
             zmin=zmin,
             zmax=zmax,
-            labels=dict(x="", y="Ticker", color="Volatility Z-Score"),
+            labels=dict(x="", y="Ticker", color=value_type),
             aspect="auto"
         )
         
         fig.update_layout(
-            title=f"{tf_name} Volatility Z-Scores (Window: {window})",
+            title=f"{tf_name} (Window: {window})",
             width=400,
             height=600,
             template="plotly_white"
@@ -467,14 +489,14 @@ def plot_volatility_heatmap(
         # Update colorbar
         fig.update_coloraxes(
             colorbar=dict(
-                title="Z-Score",
+                title=value_type,
             )
         )
         
         if save_path:
             # Create filename with timeframe
             base_path = save_path.replace('.png', '').replace('.jpg', '').replace('.html', '')
-            tf_save_path = f"{base_path}_{tf_name.lower()}.png"
+            tf_save_path = f"{base_path}_{tf_name.lower().replace(' ', '_')}.png"
             fig.write_image(tf_save_path)
             print(f"Volatility heatmap saved to {tf_save_path}")
         

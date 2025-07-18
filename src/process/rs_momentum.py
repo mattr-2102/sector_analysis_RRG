@@ -2,9 +2,12 @@ import pandas as pd
 from typing import Optional
 from src.process.relative_strength import get_relative_strength
 from scipy.stats import linregress
+from src.fetch.update_data import update_data
 
 
 def get_relative_strength_momentum(target: str, benchmark: str, lookback_days: int = 30, momentum_window: Optional[int] = 5, normalize: bool = True, method: str = "slope", return_series: bool = False, timeframe: str = 'daily') -> float:
+    update_data(target)
+    update_data(benchmark)
     rs_series = get_relative_strength(
         target=target,
         benchmark=benchmark,

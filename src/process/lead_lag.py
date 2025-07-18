@@ -4,6 +4,7 @@ from typing import List, Dict, Tuple, Optional
 from config.helper import get_sector_config
 from src.process.returns import get_cumulative_returns
 from statsmodels.tsa.stattools import grangercausalitytests
+from src.fetch.update_data import update_data
 
 config = get_sector_config()
 sector_etfs = config['sector_etfs']
@@ -42,6 +43,7 @@ def sector_lead_lag_matrix(
     results = pd.DataFrame(index=idx, columns=idx)
     returns = {}
     for sector in sectors:
+        update_data(sector)
         # Use returns, not cumulative, for lead-lag
         df = get_cumulative_returns(sector, timeframe)
         returns[sector] = df.iloc[:, 0].pct_change().dropna()
@@ -65,6 +67,8 @@ def granger_lead_lag_matrix(
     """
     idx = pd.Index(sectors)
     results = pd.DataFrame(index=idx, columns=idx, dtype=object)
+    for sector in sectors:
+        update_data(sector)
     returns = {sector: get_cumulative_returns(sector, timeframe).iloc[:, 0].pct_change().dropna() for sector in sectors}
     for leader in sectors:
         for laggard in sectors:

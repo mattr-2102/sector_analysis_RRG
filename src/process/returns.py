@@ -4,6 +4,7 @@ from pathlib import Path
 from config.helper import get_data_file
 from src.fetch.price_data import fetch
 from src.process.transform_timeframe import get_resampled_data
+from src.fetch.update_data import update_data
 
 def get_cumulative_returns(ticker: str, timeframe: str = 'daily', lookback_days: Optional[int] = None) -> pd.DataFrame:
     if timeframe not in ['daily', 'weekly', 'monthly']:
@@ -17,6 +18,7 @@ def get_cumulative_returns(ticker: str, timeframe: str = 'daily', lookback_days:
 
     file_path = get_data_file(file_suffix)
 
+    # Check if file exists and data is fresh
     if not Path(file_path).exists():
         print(f"{file_path} not found.")
         if timeframe == 'daily':
@@ -25,6 +27,10 @@ def get_cumulative_returns(ticker: str, timeframe: str = 'daily', lookback_days:
         else:
             print(f"Generating {timeframe} data from raw daily data...")
             get_resampled_data(ticker, freq=timeframe)
+    else:
+        # Check if data is fresh and update if needed
+        print(f"Checking data freshness for {ticker}...")
+        update_data(ticker)
 
     data = pd.read_csv(file_path, parse_dates=['date'], index_col='date')
 
