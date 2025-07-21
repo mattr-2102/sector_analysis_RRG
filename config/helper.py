@@ -10,6 +10,10 @@ def get_data_dir() -> Path:
     project_root = Path(__file__).resolve().parents[1]
     return project_root / "data"
 
+def get_financial_dir() -> Path:
+    project_root = Path(__file__).resolve().parents[1]
+    return project_root / "data" / "financialdata"
+
 def key(source: str) -> str | None:
     try:
         project_root = Path(__file__).resolve().parents[1]
@@ -28,6 +32,9 @@ def get_data_file(filename: str) -> Path:
     project_root = Path(__file__).resolve().parents[1]
     return project_root / "data" / filename
 
+def get_financial_file(filename: str) -> Path:
+    project_root = Path(__file__).resolve().parents[1]
+    return project_root / "data" / "financialdata" / filename
 
 def get_sector_config() -> dict:
     config_path = Path(__file__).resolve().parent / "sectors.yaml"

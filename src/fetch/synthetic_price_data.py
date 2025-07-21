@@ -30,7 +30,7 @@ def fetchandpatch_synthetics(ticker, custom_list, start_date, customdate1, custo
         
         combined = pd.concat(all_data, axis=1)
         combined.dropna(axis=0, how='any', inplace=True)
-        combined.to_csv(os.path.join(data_dir, f'{ticker}_synthetic_prices_raw.csv'))
+        combined.to_parquet(os.path.join(data_dir, f'{ticker}_synthetic_prices_raw.parquet'))
 
         # normalize weights
         weights = pd.Series(custom_list)
@@ -45,7 +45,7 @@ def fetchandpatch_synthetics(ticker, custom_list, start_date, customdate1, custo
         # create weighted synthetic returns
         synthetic_returns = returns.dot(valid_weights)
         synthetic_returns.name = f"{ticker}"
-        synthetic_returns.to_csv(os.path.join(data_dir, f'{ticker}_synthetic_returns.csv'))
+        synthetic_returns.to_frame().to_parquet(os.path.join(data_dir, f'{ticker}_synthetic_returns.parquet'))
 
     # Download real data
     try:
@@ -59,15 +59,15 @@ def fetchandpatch_synthetics(ticker, custom_list, start_date, customdate1, custo
         real = pd.DataFrame(jraw)
         real['date'] = pd.to_datetime(real['date'])
         real.set_index('date', inplace=True)
-        real_raw_path = os.path.join(data_dir, f'{ticker}_real_raw.csv')
+        real_raw_path = os.path.join(data_dir, f'{ticker}_real_raw.parquet')
         if update and os.path.exists(real_raw_path):
-            old_real_raw = pd.read_csv(real_raw_path, parse_dates=['date'], index_col='date')
+            old_real_raw = pd.read_parquet(real_raw_path)
             real = real[~real.index.isin(old_real_raw.index)]
             if not real.empty:
                 real = pd.concat([old_real_raw, real]).sort_index()
             else:
                 real = old_real_raw
-        real.to_csv(real_raw_path)
+        real.to_parquet(real_raw_path)
 
         real = real[['close']]
         real.rename(columns={'close': ticker}, inplace=True)
@@ -77,15 +77,18 @@ def fetchandpatch_synthetics(ticker, custom_list, start_date, customdate1, custo
             full_returns = pd.concat([synthetic_returns, real_returns])
         else:
             full_returns = real_returns
-        daily_path = os.path.join(data_dir, f'{ticker}_daily.csv')
+        daily_path = os.path.join(data_dir, f'{ticker}_daily.parquet')
         if update and os.path.exists(daily_path):
-            old_daily = pd.read_csv(daily_path, parse_dates=['date'], index_col='date')
+            old_daily = pd.read_parquet(daily_path)
+            # Ensure old_daily is a DataFrame
+            if isinstance(old_daily, pd.Series):
+                old_daily = old_daily.to_frame()
             full_returns = full_returns[~full_returns.index.isin(old_daily.index)]
             if not full_returns.empty:
-                full_returns = pd.concat([old_daily, full_returns]).sort_index()
+                full_returns = pd.concat([old_daily, full_returns.to_frame()]).sort_index()
             else:
                 full_returns = old_daily
-        full_returns.to_csv(daily_path)
+        full_returns.to_parquet(daily_path)
 
         print(f"Saved full stitched returns for {ticker}.")
 

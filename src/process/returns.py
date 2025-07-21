@@ -5,41 +5,41 @@ from config.helper import get_data_file
 from src.fetch.price_data import fetch
 from src.process.transform_timeframe import get_resampled_data
 from src.fetch.update_data import update_data
+from src.process.transform_timeframe import get_resampled_data
 
 def get_cumulative_returns(ticker: str, timeframe: str = 'daily', lookback_days: Optional[int] = None) -> pd.DataFrame:
     if timeframe not in ['daily', 'weekly', 'monthly']:
         raise ValueError("Timeframe must be 'daily', 'weekly', or 'monthly'.")
 
     file_suffix = {
-        'daily': f'{ticker}_daily.csv',
-        'weekly': f'{ticker}_weekly.csv',
-        'monthly': f'{ticker}_monthly.csv'
+        'daily': f'{ticker}_daily.parquet',
+        'weekly': f'{ticker}_weekly.parquet',
+        'monthly': f'{ticker}_monthly.parquet'
     }[timeframe]
 
+    update_data(ticker)
     file_path = get_data_file(file_suffix)
-
-    # Check if file exists and data is fresh
+    
     if not Path(file_path).exists():
-        print(f"{file_path} not found.")
-        if timeframe == 'daily':
-            print("Attempting to fetch daily data...")
-            fetch(ticker)
-        else:
-            print(f"Generating {timeframe} data from raw daily data...")
-            get_resampled_data(ticker, freq=timeframe)
-    else:
-        # Check if data is fresh and update if needed
-        print(f"Checking data freshness for {ticker}...")
-        update_data(ticker)
+        get_resampled_data(ticker, timeframe)
+        file_path = get_data_file(file_suffix)
 
-    data = pd.read_csv(file_path, parse_dates=['date'], index_col='date')
-
+    
+    data = pd.read_parquet(file_path)
+    
+    
     if data.empty:
         raise ValueError(f"{ticker} could not be retrieved. The ticker may be invalid or missing data.")
     
 
-    df = data.select_dtypes(include='number')
-
+    # Handle different data structures
+    if isinstance(data, pd.Series):
+        # If it's a Series, convert to DataFrame
+        df = data.to_frame()
+    else:
+        # If it's a DataFrame, select numeric columns
+        df = data.select_dtypes(include='number')
+        
     if lookback_days is not None:
         df = df.tail(lookback_days + 1)
     

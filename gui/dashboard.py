@@ -15,20 +15,7 @@ class Dashboard:
         
     def get_sector_name(self, ticker: str) -> str:
         """Get the full name for a sector ticker"""
-        sector_names = {
-            'SPY': 'S&P 500 ETF',
-            'XLE': 'Energy Select Sector SPDR',
-            'XLB': 'Materials Select Sector SPDR',
-            'XLI': 'Industrials Select Sector SPDR',
-            'XLU': 'Utilities Select Sector SPDR',
-            'XLV': 'Health Care Select Sector SPDR',
-            'XLF': 'Financial Select Sector SPDR',
-            'XLY': 'Consumer Discretionary Select Sector SPDR',
-            'XLP': 'Consumer Staples Select Sector SPDR',
-            'XLK': 'Technology Select Sector SPDR',
-            'XLC': 'Communication Services Select Sector SPDR',
-            'XLRE': 'Real Estate Select Sector SPDR'
-        }
+        sector_names = self.config['sector_names']
         return sector_names.get(ticker, ticker)
     
     def get_daily_changes_data(self) -> Tuple[Optional[Dict], str]:
@@ -40,15 +27,15 @@ class Dashboard:
                 update_data(ticker)
                 # Get the daily data file path
                 if ticker in (self.config['synthetic_etfs']):
-                    file_path_percent = get_data_file(f"{ticker}_real_raw.csv")
-                    file_path_raw = get_data_file(f"{ticker}_daily.csv")
+                    file_path_percent = get_data_file(f"{ticker}_real_raw.parquet")
+                    file_path_raw = get_data_file(f"{ticker}_daily.parquet")
                 else:
-                    file_path_percent = get_data_file(f"{ticker}_daily.csv")
-                    file_path_raw = get_data_file(f"{ticker}_daily_raw.csv")
+                    file_path_percent = get_data_file(f"{ticker}_daily.parquet")
+                    file_path_raw = get_data_file(f"{ticker}_daily_raw.parquet")
                 
-                # Read the CSV file
-                df_percent = pd.read_csv(file_path_percent, parse_dates=['date'])
-                df_raw = pd.read_csv(file_path_raw, parse_dates=['date'])
+                # Read the parquet file
+                df_percent = pd.read_parquet(file_path_percent)
+                df_raw = pd.read_parquet(file_path_raw)
                 df_percent = df_percent.sort_values('date')
                 df_raw = df_raw.sort_values('date')
                 

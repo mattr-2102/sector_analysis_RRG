@@ -6,6 +6,8 @@ from src.fetch.update_data import update_data
 def get_relative_strength(target: str, benchmark: str, lookback_days: Optional[int] = None, normalize: bool = True, timeframe: str = 'daily') -> pd.Series:
     update_data(target)
     update_data(benchmark)
+    
+    print(f"Getting cumulative returns for {target}...")
     target_cum = get_cumulative_returns(target, timeframe)
     benchmark_cum = get_cumulative_returns(benchmark, timeframe)
 

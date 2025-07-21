@@ -121,18 +121,18 @@ def fetch_polygon_stock(ticker, start_date=default_start_date, end_date=default_
             })
             
             # Save raw data
-            raw_path = os.path.join(data_dir, f'{ticker}_daily_raw.csv')
-            daily_path = os.path.join(data_dir, f'{ticker}_daily.csv')
+            raw_path = os.path.join(data_dir, f'{ticker}_daily_raw.parquet')
+            daily_path = os.path.join(data_dir, f'{ticker}_daily.parquet')
             # Append logic
             if update and os.path.exists(raw_path):
-                old_raw = pd.read_csv(raw_path, parse_dates=['date'], index_col='date')
+                old_raw = pd.read_parquet(raw_path)
                 data = data[~data.index.isin(old_raw.index)]
                 if not data.empty:
                     data = pd.concat([old_raw, data]).sort_index()
                 else:
                     data = old_raw
             if not data.empty:
-                data.to_csv(raw_path)
+                data.to_parquet(raw_path)
             
             # Extract close prices and rename column
             close_df = data[['close']].copy()
@@ -144,15 +144,18 @@ def fetch_polygon_stock(ticker, start_date=default_start_date, end_date=default_
             
             # Save processed data
             if update and os.path.exists(daily_path):
-                old_daily = pd.read_csv(daily_path, parse_dates=['date'], index_col='date')
+                old_daily = pd.read_parquet(daily_path)
+                # Ensure old_daily is a DataFrame
+                if isinstance(old_daily, pd.Series):
+                    old_daily = old_daily.to_frame()
                 data_returns = data_returns[~data_returns.index.isin(old_daily.index)]
                 if not data_returns.empty:
                     data_returns = pd.concat([old_daily, data_returns]).sort_index()
                 else:
                     data_returns = old_daily
             if not data_returns.empty:
-                data_returns.to_csv(daily_path)
-            print(f"Saved: {ticker}_daily.csv ({len(all_results)} records)")
+                data_returns.to_parquet(daily_path)
+            print(f"Saved: {ticker}_daily.parquet ({len(all_results)} records)")
         else:
             print(f"Error: No data returned for {ticker}")
             
@@ -199,38 +202,56 @@ def fetch(tickers=etf_tickers, start_date=default_start_date, end_date=default_e
             try:
                 raw = requests.get(f"{api_endpoint}/daily/{ticker}/prices?startDate={start_date}&endDate={end_date}&format=json&resampleFreq=daily&token={api_key}")
                 jraw = raw.json()
-                data = pd.DataFrame(jraw)
+                
+                # Debug: Check if we got valid data
+                if not jraw or len(jraw) == 0:
+                    print(f"Warning: No data returned from API for {ticker}")
+                    continue
+                    
+                # Create DataFrame with explicit index to avoid scalar values error
+                try:
+                    data = pd.DataFrame(jraw)
+                except ValueError as e:
+                    raise e
+                
                 data['date'] = pd.to_datetime(data['date'])
+                
                 data.set_index('date', inplace=True)
-                raw_path = os.path.join(data_dir, f'{ticker}_daily_raw.csv')
-                daily_path = os.path.join(data_dir, f'{ticker}_daily.csv')
+                raw_path = os.path.join(data_dir, f'{ticker}_daily_raw.parquet')
+                daily_path = os.path.join(data_dir, f'{ticker}_daily.parquet')
                 # Append logic
                 if update and os.path.exists(raw_path):
-                    old_raw = pd.read_csv(raw_path, parse_dates=['date'], index_col='date')
+                    old_raw = pd.read_parquet(raw_path)
                     data = data[~data.index.isin(old_raw.index)]
                     if not data.empty:
                         data = pd.concat([old_raw, data]).sort_index()
                     else:
                         data = old_raw
                 if not data.empty:
-                    data.to_csv(raw_path)
+                    data.to_parquet(raw_path)
                 data = data[['close']]
                 data.rename(columns={'close': ticker}, inplace=True)
                 data_returns = data.pct_change().dropna()
+                # Ensure data_returns is a Series and set its name
+                if isinstance(data_returns, pd.DataFrame):
+                    data_returns = data_returns.iloc[:, 0]  # Take first column if it's a DataFrame
                 data_returns.name = f'{ticker}'
                 if update and os.path.exists(daily_path):
-                    old_daily = pd.read_csv(daily_path, parse_dates=['date'], index_col='date')
+                    old_daily = pd.read_parquet(daily_path)
+                    # Ensure old_daily is a DataFrame
+                    if isinstance(old_daily, pd.Series):
+                        old_daily = old_daily.to_frame()
                     data_returns = data_returns[~data_returns.index.isin(old_daily.index)]
                     if not data_returns.empty:
-                        data_returns = pd.concat([old_daily, data_returns]).sort_index()
+                        data_returns = pd.concat([old_daily, data_returns.to_frame()]).sort_index()
                     else:
                         data_returns = old_daily
                 if not data_returns.empty:
-                    data_returns.to_csv(daily_path)
-                    print(f"Saved: {ticker}_daily.csv")
+                    data_returns.to_frame().to_parquet(daily_path)
+                    print(f"Saved: {ticker}_daily.parquet")
                 else:
                     print(f"Error: No data returned for {ticker}")
             except Exception as e:
                 print(f"Error fetching {ticker}: {e}")
         
-        time.sleep(3)
+        time.sleep(1)

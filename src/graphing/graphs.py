@@ -51,20 +51,25 @@ def plot_relative_strength(target: str, benchmark: str = config['benchmark'], lo
         xaxis_title="Date",
         yaxis_title="Relative Strength",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-        template="plotly_white",
-        height=500,
-        width=900
+        template="plotly_dark",
+        plot_bgcolor="#26282C",
+        paper_bgcolor="#26282C",
+        font=dict(color="#EBEBEB"),
+        autosize=True,
+        margin=dict(l=40, r=40, t=80, b=40),
     )
 
     if save_path:
         fig.write_image(save_path)
         print(f"Plot saved to {save_path}")
     else:
-        fig.show()
+        return fig.to_html(include_plotlyjs='cdn')
 
-def plot_sector_relative_strength(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days: Optional[int] = 30, normalize: bool = True, timeframe: str = 'daily'):
+def plot_sector_relative_strength(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days: int = 30, normalize: bool = True, timeframe: str = 'daily'):
     
-    if timeframe not in ['daily','weekly', 'monthly']:
+    colors = px.colors.qualitative.Dark24
+    
+    if timeframe not in ['daily', 'weekly', 'monthly']:
         raise ValueError("freq must be 'daily', 'weekly', or 'monthly'")
     
     all_rs = {}
@@ -73,8 +78,12 @@ def plot_sector_relative_strength(tickers: Optional[List[str]] = config['sector_
         if ticker == benchmark:
             update_data(ticker)
             continue
-        rs = get_relative_strength(ticker, benchmark, lookback_days, normalize, timeframe=timeframe)
-        all_rs[ticker] = rs
+        try:
+            rs = get_relative_strength(ticker, benchmark, lookback_days, normalize, timeframe=timeframe)
+            all_rs[ticker] = rs
+        except Exception as e:
+            print(f"Error processing {ticker}: {e}")
+            continue
 
     # Build figure
     fig = go.Figure()
@@ -95,7 +104,7 @@ def plot_sector_relative_strength(tickers: Optional[List[str]] = config['sector_
             x1=max(series.index),
             y0=1.0,
             y1=1.0,
-            line=dict(color='black', width=2, dash='dash'),
+            line=dict(color='white', width=2, dash='dash'),
         )
 
     chartinterval = {'daily': 'days', 'weekly': 'weeks', 'monthly': 'months'}[timeframe]
@@ -106,18 +115,23 @@ def plot_sector_relative_strength(tickers: Optional[List[str]] = config['sector_
         yaxis_title="Relative Strength" + (" (Normalized)" if normalize else ""),
         hovermode="x unified",
         legend_title="Sector ETF",
-        template="plotly_white",
-        width=1000,
-        height=600,
+        template="plotly_dark",
+        plot_bgcolor="#26282C",
+        paper_bgcolor="#26282C",
+        font=dict(color="#EBEBEB"),
+        autosize=True,
+        margin=dict(l=40, r=40, t=80, b=40),
     )
 
-    fig.show()
+    return fig.to_html(include_plotlyjs='cdn')
 
 def plot_relative_strength_momentum(target: str, benchmark: str = config['benchmark'], lookback_days: int = 30, momentum_window: int = 5, normalize: bool = True, save_path: Optional[str] = None, timeframe: str = 'daily') -> None:
     
     if timeframe not in ['daily','weekly', 'monthly']:
         raise ValueError("freq must be 'daily', 'weekly', or 'monthly'")
     
+    colors = px.colors.qualitative.Dark24
+
     rs_series = get_relative_strength(target, benchmark, lookback_days=lookback_days, normalize=normalize, timeframe=timeframe)
 
     # Trim to momentum window
@@ -138,16 +152,19 @@ def plot_relative_strength_momentum(target: str, benchmark: str = config['benchm
         title=f"RS Momentum: {target} vs {benchmark} (Timeframe: {lookback_days} {chartinterval}, Window: {momentum_window}, Normalized: {normalize})",
         xaxis_title="Date",
         yaxis_title="Relative Strength",
-        template="plotly_white",
-        width=900,
-        height=500
+        template="plotly_dark",
+        plot_bgcolor="#26282C",
+        paper_bgcolor="#26282C",
+        font=dict(color="#EBEBEB"),
+        autosize=True,
+        margin=dict(l=40, r=40, t=80, b=40),
     )
 
     if save_path:
         fig.write_image(save_path)
         print(f"Plot saved to {save_path}")
     else:
-        fig.show()
+        return fig.to_html(include_plotlyjs='cdn')
 
 def plot_sector_relative_strength_momentum(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days: int = 30, momentum_window: int = 5, normalize: bool = True, timeframe: str = 'daily'):
     
@@ -177,30 +194,32 @@ def plot_sector_relative_strength_momentum(tickers: Optional[List[str]] = config
     df.sort_values(by='Momentum', ascending=True, inplace=True)  # Sort for bar order
 
     fig = go.Figure(go.Bar(
-        x=df['Momentum'],
-        y=df.index,
-        orientation='h',
+        x=df.index,
+        y=df['Momentum'],
         marker=dict(color='steelblue'),
     ))
 
     chartinterval = {'daily': 'days', 'weekly': 'weeks', 'monthly': 'months'}[timeframe]
 
     fig.update_layout(
-        title=f"Relative Strength Momentum (vs {benchmark}) (Timeframe: {lookback_days} {chartinterval}, Window: {momentum_window}, Normalized: {normalize})",
+        title=f"Relative Strength Momentum (vs {benchmark}) ({lookback_days} {chartinterval} back, {momentum_window} {chartinterval} window)",
         xaxis_title="Momentum Score",
         yaxis_title="Sector ETF",
-        template="plotly_white",
-        height=500,
-        width=800
+        template="plotly_dark",
+        plot_bgcolor="#26282C",
+        paper_bgcolor="#26282C",
+        font=dict(color="#EBEBEB"),
+        autosize=True,
+        margin=dict(l=40, r=40, t=80, b=40),
     )
 
-    fig.show()
+    return fig.to_html(include_plotlyjs='cdn')
 
 def plot_rrg(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days=30, momentum_window=5, normalize=True, timeframe: str = 'daily'):
     if timeframe not in ['daily','weekly', 'monthly']:
         raise ValueError("freq must be 'daily', 'weekly', or 'monthly'")
     
-    colors = px.colors.qualitative.Dark24
+    colors = px.colors.qualitative.Light24
     traces = []
     all_x, all_y = [], []
 
@@ -275,6 +294,11 @@ def plot_rrg(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: st
         except Exception as e:
             print(f"Error processing {ticker}: {e}")
             
+    # Check if we have any data to plot
+    if not all_x or not all_y:
+        print("No data available for RRG plot. All tickers failed to process.")
+        return "<p>No data available for RRG plot. Please check data availability.</p>"
+    
     # Calculate padding
     x_range = max(all_x) - min(all_x)
     y_range = max(all_y) - min(all_y)
@@ -294,24 +318,27 @@ def plot_rrg(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: st
     fig.add_shape(type="rect", x0=0, x1=x_max, y0=1, y1=y_max, fillcolor="rgba(0, 255, 0, 0.1)", layer="below", line_width=0)
 
     # Crosshairs
-    fig.add_shape(type="line", x0=x_min, x1=x_max, y0=1.0, y1=1.0, line=dict(color="black", width=1.5, dash="dot"))
-    fig.add_shape(type="line", x0=0, x1=0, y0=y_min, y1=y_max, line=dict(color="black", width=1.5, dash="dot"))
+    fig.add_shape(type="line", x0=x_min, x1=x_max, y0=1.0, y1=1.0, line=dict(color="white", width=1.5, dash="dot"))
+    fig.add_shape(type="line", x0=0, x1=0, y0=y_min, y1=y_max, line=dict(color="white", width=1.5, dash="dot"))
 
     chartinterval = {'daily': 'days', 'weekly': 'weeks', 'monthly': 'months'}[timeframe]
     
     # Layout
     fig.update_layout(
-        title=f"Relative Rotation Graph (RRG) with Tails (vs {benchmark} \n ({lookback_days} {chartinterval} back with {momentum_window} {chartinterval} window))",
+        title=f"Relative Rotation Graph (RRG) with Tails (vs {benchmark}), ({lookback_days} {chartinterval} back,{momentum_window} {chartinterval} window)",
         xaxis_title="RS Momentum",
         yaxis_title="Relative Strength",
-        template="plotly_white",
-        width=1425,
-        height=975,
+        template="plotly_dark",
+        plot_bgcolor="#26282C",
+        paper_bgcolor="#26282C",
+        font=dict(color="#EBEBEB"),
+        autosize=True,
+        margin=dict(l=40, r=40, t=80, b=40),
         xaxis=dict(range=[x_min, x_max]),
         yaxis=dict(range=[y_min, y_max])
     )
 
-    fig.show()
+    return fig.to_html(include_plotlyjs='cdn')
 
 def plot_sector_lead_lag_matrix(
     sectors: Optional[List[str]] = None,
@@ -350,7 +377,7 @@ def plot_sector_lead_lag_matrix(
         fig.write_image(save_path)
     if show:
         fig.show()
-    return fig
+    return fig.to_html(include_plotlyjs='cdn')
 
 def plot_granger_lead_lag_matrix(
     sectors: Optional[List[str]] = None,
@@ -413,18 +440,19 @@ def plot_granger_lead_lag_matrix(
         fig.write_image(save_path)
     if show:
         fig.show()
-    return fig
+    return fig.to_html(include_plotlyjs='cdn')
 
 
 def plot_volatility_heatmap(
     tickers: Optional[List[str]] = None,
-    window: int = 20,
-    show: bool = True,
+    timeframe: str = 'daily',
+    lookback_days: int = 20,
+    show: bool = False,
     save_path: Optional[str] = None,
     color_scale: str = 'RdBu',
     zmin: Optional[float] = None,
     zmax: Optional[float] = None,
-    raw_volatility: bool = False,
+    normalize: bool = False,
     **kwargs
 ):
     """
@@ -442,67 +470,53 @@ def plot_volatility_heatmap(
     """
     if tickers is None:
         tickers = list(config['sector_etfs'])
-    vol_df = get_volatility_data(tickers=tickers, window=window, raw_volatility=raw_volatility, **kwargs)
+    vol_df = get_volatility_data(tickers=tickers, timeframe=timeframe, window=lookback_days, raw_volatility=normalize, **kwargs)
     
-    # Choose which columns to plot based on raw_volatility parameter
-    if raw_volatility:
-        timeframes = ['DailyVol', 'WeeklyVol', 'MonthlyVol']
-        timeframe_names = ['Daily Volatility', 'Weekly Volatility', 'Monthly Volatility']
-        value_type = "Annualized Volatility"
-    else:
-        timeframes = ['DailyZVol', 'WeeklyZVol', 'MonthlyZVol']
-        timeframe_names = ['Daily Z-Score', 'Weekly Z-Score', 'Monthly Z-Score']
-        value_type = "Z-Score"
+    col_name = f"{timeframe.capitalize()}Vol" if normalize else f"{timeframe.capitalize()}ZVol"
+    value_type = "Annualized Volatility" if normalize else "Z-Score"
+    title = f"{timeframe} {'Volatility' if normalize else 'Z-Score'} (lookback: {lookback_days})"
+
+    tf_data = vol_df[col_name].dropna()
+
+    if tf_data.empty:
+        print(f"No data available for timeframe: {timeframe}")
+        return None
     
-    figs = []
-    
-    for tf, tf_name in zip(timeframes, timeframe_names):
-        if tf not in vol_df.columns:
-            continue
-            
-        # Prepare data for heatmap
-        tf_data = vol_df[tf].dropna()
-        
-        # Create heatmap data - reshape for single column heatmap
-        heatmap_data = tf_data.to_numpy().reshape(-1, 1)
-        ticker_labels = tf_data.index.tolist()
-        
-        # Create heatmap
-        fig = px.imshow(
-            heatmap_data,
-            x=[value_type],
-            y=ticker_labels,
-            color_continuous_scale=color_scale,
-            zmin=zmin,
-            zmax=zmax,
-            labels=dict(x="", y="Ticker", color=value_type),
-            aspect="auto"
-        )
-        
-        fig.update_layout(
-            title=f"{tf_name} (Window: {window})",
-            width=400,
-            height=600,
-            template="plotly_white"
-        )
-        
-        # Update colorbar
-        fig.update_coloraxes(
-            colorbar=dict(
-                title=value_type,
-            )
-        )
-        
-        if save_path:
-            # Create filename with timeframe
-            base_path = save_path.replace('.png', '').replace('.jpg', '').replace('.html', '')
-            tf_save_path = f"{base_path}_{tf_name.lower().replace(' ', '_')}.png"
-            fig.write_image(tf_save_path)
-            print(f"Volatility heatmap saved to {tf_save_path}")
-        
-        if show:
-            fig.show()
-        
-        figs.append(fig)
-    
-    return figs
+    tf_data = vol_df[col_name].dropna().sort_values(ascending=False)
+
+    # Create heatmap
+    heatmap_data = tf_data.to_numpy().reshape(-1, 1)
+    ticker_labels = tf_data.index.tolist()
+
+    import plotly.express as px
+    fig = px.imshow(
+        heatmap_data,
+        x=[value_type],
+        y=ticker_labels,
+        color_continuous_scale=color_scale,
+        zmin=zmin,
+        zmax=zmax,
+        labels=dict(x="", y="Ticker", color=value_type),
+        aspect="auto"
+    )
+
+    fig.update_layout(
+        title=title,
+        template="plotly_dark",
+        plot_bgcolor="#26282C",
+        paper_bgcolor="#26282C",
+        font=dict(color="#EBEBEB"),
+        autosize=True,
+        margin=dict(l=40, r=40, t=80, b=40),
+    )
+
+    if save_path:
+        base_path = save_path.replace('.png', '').replace('.jpg', '').replace('.html', '')
+        tf_save_path = f"{base_path}_{timeframe}_{'vol' if normalize else 'zvol'}.png"
+        fig.write_image(tf_save_path)
+        print(f"Volatility heatmap saved to {tf_save_path}")
+
+    if show:
+        fig.show()
+
+    return fig.to_html(include_plotlyjs='cdn')

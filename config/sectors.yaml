@@ -17,6 +17,20 @@ synthetic_etfs:
 
 benchmark: SPY
 
+sector_names:
+  SPY: 'S&P 500 ETF'
+  XLE: 'Energy Select Sector SPDR'
+  XLB: 'Materials Select Sector SPDR'
+  XLI: 'Industrials Select Sector SPDR'
+  XLU: 'Utilities Select Sector SPDR'
+  XLV: 'Health Care Select Sector SPDR'
+  XLF: 'Financial Select Sector SPDR'
+  XLY: 'Consumer Discretionary Select Sector SPDR'
+  XLP: 'Consumer Staples Select Sector SPDR'
+  XLK: 'Technology Select Sector SPDR'
+  XLC: 'Communication Services Select Sector SPDR'
+  XLRE: 'Real Estate Select Sector SPDR'  
+
 sector_holdings:
   XLE:
     - XOM, CVX, COP, EOG, WMB, MPC, KMI, PSX, OKE, SLB, VLO, HES, BKR, TRGP, EQT, OXY, FANG, EXE, DVN, CTRA, TPL, HAL, APA
