@@ -59,7 +59,7 @@ class Dashboard:
                     'last_close': current['close'],
                     'prev_close': previous['close'],
                     'change_dollar': change_dollar,
-                    'change_percent': df_percent.tail(1).iloc[-1][f'{ticker}'],
+                    'change_percent': df_percent.tail(1).iloc[-1][f'{ticker}']*100,
                     'volume': current.get('volume', 0),
                     'name': self.get_sector_name(ticker)
                 }
@@ -99,11 +99,11 @@ class Dashboard:
             row = [
                 ticker,  # Ticker
                 ticker_data['name'],  # Name
-                f"${ticker_data['last_close']:.2f}",  # Last Close
-                f"${ticker_data['prev_close']:.2f}",  # Prev Close
-                f"${ticker_data['change_dollar']:+.2f}",  # Change ($)
-                f"{ticker_data['change_percent']:+.2f}%",  # Change (%)
-                f"{ticker_data['volume']:,}" if ticker_data['volume'] > 0 else "N/A"  # Volume
+                f"{ticker_data['last_close']:.2f}",  # Last Close
+                f"{ticker_data['prev_close']:.2f}",  # Prev Close
+                f"{ticker_data['change_dollar']:+.2f}",  # Change ($)
+                f"{ticker_data['change_percent']:+.2f}",  # Change (%)
+                f"{ticker_data['volume']:1f}" if ticker_data['volume'] > 0 else "N/A"  # Volume
             ]
             
             table_data.append(row)

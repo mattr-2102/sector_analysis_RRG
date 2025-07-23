@@ -75,7 +75,8 @@ def finRatios(ticker) -> pd.DataFrame:
         'Market Cap': marketcap,
         'Price': close,
         'P/E': close / eps if close and eps else None,
-        'P/B': marketcap / eq if marketcap and eq else None
+        'P/B': marketcap / eq if marketcap and eq else None,
+        'P/S': marketcap / rev if marketcap and rev else None,
     }
 
     df = pd.DataFrame([ratios])

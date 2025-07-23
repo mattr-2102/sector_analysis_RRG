@@ -229,7 +229,7 @@ def fetch(tickers=etf_tickers, start_date=default_start_date, end_date=default_e
                         data = old_raw
                 if not data.empty:
                     data.to_parquet(raw_path)
-                data = data[['close']]
+                data = data[['close']].copy()
                 data.rename(columns={'close': ticker}, inplace=True)
                 data_returns = data.pct_change().dropna()
                 # Ensure data_returns is a Series and set its name
@@ -243,11 +243,11 @@ def fetch(tickers=etf_tickers, start_date=default_start_date, end_date=default_e
                         old_daily = old_daily.to_frame()
                     data_returns = data_returns[~data_returns.index.isin(old_daily.index)]
                     if not data_returns.empty:
-                        data_returns = pd.concat([old_daily, data_returns.to_frame()]).sort_index()
+                        data_returns = pd.concat([old_daily, data_returns]).sort_index()
                     else:
                         data_returns = old_daily
                 if not data_returns.empty:
-                    data_returns.to_frame().to_parquet(daily_path)
+                    data_returns.to_parquet(daily_path)
                     print(f"Saved: {ticker}_daily.parquet")
                 else:
                     print(f"Error: No data returned for {ticker}")

@@ -215,130 +215,141 @@ def plot_sector_relative_strength_momentum(tickers: Optional[List[str]] = config
 
     return fig.to_html(include_plotlyjs='cdn')
 
-def plot_rrg(tickers: Optional[List[str]] = config['sector_etfs'], benchmark: str = config['benchmark'], lookback_days=30, momentum_window=5, normalize=True, timeframe: str = 'daily'):
-    if timeframe not in ['daily','weekly', 'monthly']:
-        raise ValueError("freq must be 'daily', 'weekly', or 'monthly'")
-    
+def plot_rrg(
+    tickers: Optional[List[str]] = config['sector_etfs'],
+    benchmark: str = config['benchmark'],
+    lookback_days: int = 30,
+    momentum_window: int = 5,
+    normalize: bool = True,
+    timeframe: str = 'daily'
+):
+    if timeframe not in ['daily', 'weekly', 'monthly']:
+        raise ValueError("timeframe must be 'daily', 'weekly', or 'monthly'")
+
+    # Update benchmark data once
+    update_data(benchmark)
+
     colors = px.colors.qualitative.Light24
     traces = []
     all_x, all_y = [], []
 
+    total_lookback = lookback_days + momentum_window
+
     for i, ticker in enumerate(tickers):
         if ticker == benchmark:
-            update_data(ticker)
             continue
 
         try:
-            rs_series = get_relative_strength(ticker, benchmark, lookback_days, normalize)
-            if len(rs_series) < momentum_window + 1:
-                continue
+            # Fetch target data
+            update_data(ticker)
 
-            color = colors[i % len(colors)]
-
-            # Get RS momentum and relative strength values
-            tail_x = get_relative_strength_momentum(
+            # 1) RS series
+            rs = get_relative_strength(
                 target=ticker,
                 benchmark=benchmark,
-                lookback_days=lookback_days,
+                lookback_days=total_lookback,
+                normalize=normalize,
+                timeframe=timeframe
+            )
+
+            # 2) Raw momentum list
+            raw_mom = get_relative_strength_momentum(
+                target=ticker,
+                benchmark=benchmark,
+                lookback_days=total_lookback,
                 momentum_window=momentum_window,
                 normalize=normalize,
+                method='slope',
                 return_series=True,
                 timeframe=timeframe
             )
-            tail_y = rs_series.tail(len(tail_x)).tolist()
-            
-            tail_x = tail_x[-momentum_window:]
-            tail_y = tail_y[-momentum_window:]
 
-            if len(tail_x) != len(tail_y):
-                print(f"Skipping {ticker} due to length mismatch.")
+            # 3) Align momentum as Series indexed to rs (momentum starts at index shift)
+            # momentum length should be len(rs) - momentum_window + 1
+            start_idx = momentum_window - 1
+            mom = pd.Series(raw_mom, index=rs.index[start_idx:])
+
+            # Ensure counts match
+            if len(rs) < momentum_window + 1 or len(mom) != len(rs) - momentum_window + 1:
                 continue
 
-            all_x.extend(tail_x)
-            all_y.extend(tail_y)
+            # 4) Extract tails (last momentum_window points)
+            tail_rs  = rs.iloc[-momentum_window:].to_numpy()
+            tail_mom = mom.iloc[-momentum_window:].to_numpy()
 
+            # Collect all for axis scaling
+            all_x.extend(tail_rs)
+            all_y.extend(tail_mom)
+            color = colors[i % len(colors)]
+
+            # 5a) Line+markers trace (no text)
             traces.append(go.Scatter(
-                x=tail_x,
-                y=tail_y,
+                x=tail_rs,
+                y=tail_mom,
                 mode='lines+markers',
                 line=dict(shape='spline', color=color, width=4),
-                marker=dict(size=6, color='white', opacity=1, line=dict(color=color, width=2)),
+                marker=dict(size=8, color='white', line=dict(color=color, width=2)),
                 name=ticker,
                 legendgroup=ticker,
                 showlegend=False
             ))
-            
-            # Trail points
-            traces.append(go.Scatter(
-                x=tail_x[:-1],
-                y=tail_y[:-1],
-                mode='markers',
-                marker=dict(size=8, color='white', opacity=1, line=dict(color=color, width=5)),
-                name=ticker,  # Use same name
-                legendgroup=ticker,  # Group them
-                showlegend=False
-            ))
 
-            # --- Latest head point on top of everything ---
+            # 5b) Final point with label
             traces.append(go.Scatter(
-                x=[tail_x[-1]],
-                y=[tail_y[-1]],
+                x=[tail_rs[-1]],
+                y=[tail_mom[-1]],
                 mode='markers+text',
                 marker=dict(size=16, color=color, line=dict(width=1.5, color='black')),
                 text=[ticker],
-                textposition="top center",
+                textposition='top center',
                 name=ticker,
                 legendgroup=ticker,
+                showlegend=True
             ))
-                                    
+
         except Exception as e:
             print(f"Error processing {ticker}: {e}")
-            
-    # Check if we have any data to plot
+
     if not all_x or not all_y:
-        print("No data available for RRG plot. All tickers failed to process.")
-        return "<p>No data available for RRG plot. Please check data availability.</p>"
-    
-    # Calculate padding
-    x_range = max(all_x) - min(all_x)
-    y_range = max(all_y) - min(all_y)
+        print("No data available for RRG plot.")
+        return '<p>No data available for RRG plot. Please check data availability.</p>'
 
-    x_pad = x_range * 0.2
-    y_pad = y_range * 0.2
+    # Axis padding
+    x_min, x_max = min(all_x), max(all_x)
+    y_min, y_max = min(all_y), max(all_y)
+    x_pad = (x_max - x_min) * 0.2
+    y_pad = (y_max - y_min) * 0.2
 
-    x_min, x_max = min(all_x) - x_pad, max(all_x) + x_pad
-    y_min, y_max = min(all_y) - y_pad, max(all_y) + y_pad
-    
     fig = go.Figure(traces)
 
-    # Quadrants
-    fig.add_shape(type="rect", x0=x_min, x1=0, y0=y_min, y1=1, fillcolor="rgba(255, 0, 0, 0.1)", layer="below", line_width=0)
-    fig.add_shape(type="rect", x0=0, x1=x_max, y0=y_min, y1=1, fillcolor="rgba(255, 255, 0, 0.1)", layer="below", line_width=0)
-    fig.add_shape(type="rect", x0=x_min, x1=0, y0=1, y1=y_max, fillcolor="rgba(0, 0, 255, 0.1)", layer="below", line_width=0)
-    fig.add_shape(type="rect", x0=0, x1=x_max, y0=1, y1=y_max, fillcolor="rgba(0, 255, 0, 0.1)", layer="below", line_width=0)
+    # Quadrants at RS=1.0, Momentum=0.0
+    fig.add_shape(type='rect', x0=x_min - x_pad, x1=1.0, y0=y_min - y_pad, y1=0.0,
+                  fillcolor='rgba(255,0,0,0.1)', layer='below', line_width=0)
+    fig.add_shape(type='rect', x0=1.0, x1=x_max + x_pad, y0=y_min - y_pad, y1=0.0,
+                  fillcolor='rgba(255,255,0,0.1)', layer='below', line_width=0)
+    fig.add_shape(type='rect', x0=x_min - x_pad, x1=1.0, y0=0.0, y1=y_max + y_pad,
+                  fillcolor='rgba(0,0,255,0.1)', layer='below', line_width=0)
+    fig.add_shape(type='rect', x0=1.0, x1=x_max + x_pad, y0=0.0, y1=y_max + y_pad,
+                  fillcolor='rgba(0,255,0,0.1)', layer='below', line_width=0)
+    fig.add_shape(type='line', x0=x_min - x_pad, x1=x_max + x_pad, y0=0.0, y1=0.0,
+                  line=dict(color='white', width=1.5, dash='dot'))
+    fig.add_shape(type='line', x0=1.0, x1=1.0, y0=y_min - y_pad, y1=y_max + y_pad,
+                  line=dict(color='white', width=1.5, dash='dot'))
 
-    # Crosshairs
-    fig.add_shape(type="line", x0=x_min, x1=x_max, y0=1.0, y1=1.0, line=dict(color="white", width=1.5, dash="dot"))
-    fig.add_shape(type="line", x0=0, x1=0, y0=y_min, y1=y_max, line=dict(color="white", width=1.5, dash="dot"))
-
-    chartinterval = {'daily': 'days', 'weekly': 'weeks', 'monthly': 'months'}[timeframe]
-    
-    # Layout
+    interval = {'daily': 'days', 'weekly': 'weeks', 'monthly': 'months'}[timeframe]
     fig.update_layout(
-        title=f"Relative Rotation Graph (RRG) with Tails (vs {benchmark}), ({lookback_days} {chartinterval} back,{momentum_window} {chartinterval} window)",
-        xaxis_title="RS Momentum",
-        yaxis_title="Relative Strength",
-        template="plotly_dark",
-        plot_bgcolor="#26282C",
-        paper_bgcolor="#26282C",
-        font=dict(color="#EBEBEB"),
-        autosize=True,
-        margin=dict(l=40, r=40, t=80, b=40),
-        xaxis=dict(range=[x_min, x_max]),
-        yaxis=dict(range=[y_min, y_max])
+        title=(f"Relative Rotation Graph (RRG) vs {benchmark}: "
+               f"{lookback_days} {interval} lookback, {momentum_window} {interval} tail"),
+        xaxis=dict(title='RS Ratio', range=[x_min - x_pad, x_max + x_pad]),
+        yaxis=dict(title='RS Momentum', range=[y_min - y_pad, y_max + y_pad]),
+        template='plotly_dark',
+        plot_bgcolor='#26282C', paper_bgcolor='#26282C',
+        font=dict(color='#EBEBEB'),
+        margin=dict(l=40, r=40, t=80, b=40)
     )
 
     return fig.to_html(include_plotlyjs='cdn')
+
 
 def plot_sector_lead_lag_matrix(
     sectors: Optional[List[str]] = None,

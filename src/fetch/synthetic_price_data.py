@@ -85,7 +85,7 @@ def fetchandpatch_synthetics(ticker, custom_list, start_date, customdate1, custo
                 old_daily = old_daily.to_frame()
             full_returns = full_returns[~full_returns.index.isin(old_daily.index)]
             if not full_returns.empty:
-                full_returns = pd.concat([old_daily, full_returns.to_frame()]).sort_index()
+                full_returns = pd.concat([old_daily, full_returns]).sort_index()
             else:
                 full_returns = old_daily
         full_returns.to_parquet(daily_path)

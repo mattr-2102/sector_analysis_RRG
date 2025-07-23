@@ -31,7 +31,7 @@ QMainWindow, QWidget, QStackedWidget{
 	background-color: #26282C;
 }
 
-#intersectorPerformancePage, #relativeSectorPerformancePage {
+#intersectorPerformancePage, #relativeSectorPerformancePage, #timeframeComparisonPage {
 	background-color: #26282C;
 }
 
@@ -40,7 +40,7 @@ QFrame {
     background-color: #2F3237;  /* raisin-black */
 }
 
-QLabel, QCheckBox {
+QLabel, QCheckBox, QRadioButton {
     background-color: transparent;
 }
 
@@ -67,6 +67,9 @@ QPushButton:pressed {
     color: #1C1E21;             /* eerie-black */
 }
 
+*:disabled {
+	color: #696969;
+}
 /* ========== Tool Buttons (e.g., toggle button) ========== */
 QToolButton {
     background-color: #2F3237;
@@ -124,13 +127,14 @@ QHeaderView::section {
     padding: 4px;
     border: 1px solid #26282C;
 }
-QTableView::item:hover {
-    background-color: #3a3d43;
-}
 QTableView::item:selected {
-    background-color: #5196F5;
     color: #1C1E21;
 }
+QTableWidget::item {
+    border-radius: 0px;  /* force sharp corners */
+    padding: 0px;
+}
+
 </string>
   </property>
   <widget class="QWidget" name="centralwidget">
@@ -228,7 +232,7 @@ QTableView::item:selected {
         <property name="frameShadow">
          <enum>QFrame::Shadow::Plain</enum>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0,1,0,1,0,20,0">
+        <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0,1,0,20,0">
          <property name="leftMargin">
           <number>9</number>
          </property>
@@ -267,27 +271,6 @@ QTableView::item:selected {
          </item>
          <item>
           <spacer name="Spacer3">
-           <property name="orientation">
-            <enum>Qt::Orientation::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QPushButton" name="stocksrelativeButton">
-           <property name="text">
-            <string>Stock Relative 
-Performances</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="Spacer4">
            <property name="orientation">
             <enum>Qt::Orientation::Vertical</enum>
            </property>
@@ -378,8 +361,7 @@ Analysis</string>
         <property name="styleSheet">
          <string notr="true">#QFrame {
     border: none;
-}
-</string>
+}</string>
         </property>
         <property name="frameShape">
          <enum>QFrame::Shape::NoFrame</enum>
@@ -453,7 +435,7 @@ Analysis</string>
                 </sizepolicy>
                </property>
                <property name="text">
-                <string>Relative Sector Performance</string>
+                <string>Sector Performances</string>
                </property>
               </widget>
              </item>
@@ -466,7 +448,14 @@ Analysis</string>
                 </sizepolicy>
                </property>
                <property name="text">
-                <string>Inter-sector/Custom Relative Performance</string>
+                <string>Inter-sector Performances</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="timeframeComparisonButton">
+               <property name="text">
+                <string>Timeframe Comparison</string>
                </property>
               </widget>
              </item>
@@ -494,12 +483,21 @@ Analysis</string>
         <property name="currentIndex">
          <number>0</number>
         </property>
-        <widget class="QWidget" name="dashboardPage" native="true">
+        <widget class="QWidget" name="dashboardPage">
          <layout class="QGridLayout" name="gridLayout_2">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
           <item row="0" column="0">
            <widget class="QTableWidget" name="dashboardTableWidget">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -508,12 +506,183 @@ Analysis</string>
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="sectorPage">
-         <layout class="QGridLayout" name="gridLayout_3" rowstretch="0,0,0,0,0,0" columnstretch="0,0,0,0,0,0">
+        <widget class="QWidget" name="financialAnalysisPage">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <layout class="QGridLayout" name="gridLayout">
           <property name="leftMargin">
            <number>0</number>
           </property>
           <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <item row="0" column="0">
+           <widget class="QStackedWidget" name="financialAnalysisStackedWidget">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="currentIndex">
+             <number>0</number>
+            </property>
+            <widget class="QWidget" name="individualFinancialPage">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_2">
+              <item>
+               <layout class="QHBoxLayout" name="indiviualFinancialsInputsLayout">
+                <item>
+                 <widget class="QLabel" name="individualFinancialsTickerLabel">
+                  <property name="text">
+                   <string>Ticker:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPlainTextEdit" name="individualFinancialsInputText">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_3">
+                  <property name="orientation">
+                   <enum>Qt::Orientation::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pushButton">
+                  <property name="text">
+                   <string>Enter</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="individualFinancialsGraphsLayouts">
+                <item>
+                 <widget class="QWebEngineView" name="webEngineView_2">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="url">
+                   <url>
+                    <string>about:blank</string>
+                   </url>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QWebEngineView" name="webEngineView">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="url">
+                   <url>
+                    <string>about:blank</string>
+                   </url>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="individualFinancialsValuesLayout">
+                <item>
+                 <widget class="QTableView" name="tableView"/>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+            <widget class="QWidget" name="comparisonFinancialPage">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_8">
+              <item>
+               <layout class="QHBoxLayout" name="comparisonFinancialsGraphsLayouts">
+                <item>
+                 <widget class="QWebEngineView" name="webEngineView_4">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="url">
+                   <url>
+                    <string>about:blank</string>
+                   </url>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QWebEngineView" name="webEngineView_3">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="url">
+                   <url>
+                    <string>about:blank</string>
+                   </url>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="sectorPage">
+         <layout class="QGridLayout" name="gridLayout_3" rowstretch="0,0,0" columnstretch="0">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
            <number>0</number>
           </property>
           <item row="2" column="0">
@@ -526,6 +695,9 @@ Analysis</string>
             </property>
             <property name="styleSheet">
              <string notr="true"/>
+            </property>
+            <property name="currentIndex">
+             <number>2</number>
             </property>
             <widget class="QWidget" name="relativeSectorPerformancePage">
              <layout class="QVBoxLayout" name="verticalLayout_5">
@@ -544,13 +716,25 @@ Analysis</string>
               <item>
                <layout class="QHBoxLayout" name="RRGinputsContainer">
                 <property name="leftMargin">
-                 <number>6</number>
+                 <number>0</number>
                 </property>
                 <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
                  <number>6</number>
                 </property>
                 <item>
                  <layout class="QHBoxLayout" name="RRGinputs">
+                  <property name="leftMargin">
+                   <number>9</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>9</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>9</number>
+                  </property>
                   <item>
                    <widget class="QLabel" name="timeframeLabel">
                     <property name="sizePolicy">
@@ -790,10 +974,10 @@ Analysis</string>
                <number>6</number>
               </property>
               <property name="leftMargin">
-               <number>6</number>
+               <number>0</number>
               </property>
               <property name="topMargin">
-               <number>6</number>
+               <number>0</number>
               </property>
               <property name="rightMargin">
                <number>0</number>
@@ -803,8 +987,26 @@ Analysis</string>
               </property>
               <item>
                <layout class="QHBoxLayout" name="intersectorInputsContainer">
+                <property name="rightMargin">
+                 <number>9</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>6</number>
+                </property>
                 <item>
                  <layout class="QVBoxLayout" name="intersectorInputsCol">
+                  <property name="spacing">
+                   <number>6</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>9</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>9</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>9</number>
+                  </property>
                   <item>
                    <layout class="QHBoxLayout" name="intersectorInputsR1">
                     <property name="leftMargin">
@@ -873,7 +1075,7 @@ Analysis</string>
                        <number>1</number>
                       </property>
                       <property name="value">
-                       <number>20</number>
+                       <number>30</number>
                       </property>
                      </widget>
                     </item>
@@ -927,22 +1129,9 @@ Analysis</string>
                      </widget>
                     </item>
                     <item>
-                     <spacer name="horizontalSpacer_2">
-                      <property name="orientation">
-                       <enum>Qt::Orientation::Horizontal</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>40</width>
-                        <height>20</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
                      <widget class="QLabel" name="numtopholdingLabel">
                       <property name="text">
-                       <string>Number of top holdings to include:</string>
+                       <string>Number of top holdings:</string>
                       </property>
                      </widget>
                     </item>
@@ -960,6 +1149,9 @@ Analysis</string>
                   </item>
                   <item>
                    <layout class="QHBoxLayout" name="horizontalLayout">
+                    <property name="spacing">
+                     <number>6</number>
+                    </property>
                     <property name="leftMargin">
                      <number>0</number>
                     </property>
@@ -974,19 +1166,44 @@ Analysis</string>
                      <widget class="QComboBox" name="intersectorBenchmarkComboBox"/>
                     </item>
                     <item>
+                     <spacer name="horizontalSpacer_6">
+                      <property name="orientation">
+                       <enum>Qt::Orientation::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                    <item>
                      <widget class="QLabel" name="label">
                       <property name="text">
-                       <string>Custom Tickers (Seperate with Commas):</string>
+                       <string>Custom Tickers:</string>
                       </property>
                      </widget>
                     </item>
                     <item>
                      <widget class="QTextEdit" name="Additionaltickers">
                       <property name="sizePolicy">
-                       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                         <horstretch>0</horstretch>
                         <verstretch>0</verstretch>
                        </sizepolicy>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>30</height>
+                       </size>
+                      </property>
+                      <property name="frameShape">
+                       <enum>QFrame::Shape::NoFrame</enum>
+                      </property>
+                      <property name="frameShadow">
+                       <enum>QFrame::Shadow::Plain</enum>
                       </property>
                       <property name="html">
                        <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
@@ -1007,7 +1224,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
                 <item>
                  <widget class="QPushButton" name="intersectorPlotButton">
                   <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                     <horstretch>0</horstretch>
                     <verstretch>0</verstretch>
                    </sizepolicy>
@@ -1015,7 +1232,13 @@ li.checked::marker { content: &quot;\2612&quot;; }
                   <property name="minimumSize">
                    <size>
                     <width>100</width>
-                    <height>80</height>
+                    <height>40</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>40</height>
                    </size>
                   </property>
                   <property name="text">
@@ -1106,6 +1329,576 @@ li.checked::marker { content: &quot;\2612&quot;; }
               </item>
              </layout>
             </widget>
+            <widget class="QWidget" name="timeframeComparisonPage">
+             <layout class="QVBoxLayout" name="verticalLayout_10">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <layout class="QVBoxLayout" name="timeframeMainVerticleLayout" stretch="0,0,50,50">
+                <item>
+                 <layout class="QHBoxLayout" name="timeframeInputsMainHorizontal">
+                  <item>
+                   <layout class="QVBoxLayout" name="verticalLayout_9">
+                    <property name="spacing">
+                     <number>9</number>
+                    </property>
+                    <property name="leftMargin">
+                     <number>9</number>
+                    </property>
+                    <item>
+                     <widget class="QRadioButton" name="intersectorChoice">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>0</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>60</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Inter-Sector/
+Custom</string>
+                      </property>
+                      <attribute name="buttonGroup">
+                       <string notr="true">sectorIntersectorButtonGroup</string>
+                      </attribute>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QRadioButton" name="sectorsChoice">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>16777215</width>
+                        <height>50</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>Sectors</string>
+                      </property>
+                      <property name="checked">
+                       <bool>true</bool>
+                      </property>
+                      <attribute name="buttonGroup">
+                       <string notr="true">sectorIntersectorButtonGroup</string>
+                      </attribute>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <widget class="Line" name="line_3">
+                    <property name="orientation">
+                     <enum>Qt::Orientation::Vertical</enum>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QVBoxLayout" name="timeframeInputsInnerLayout">
+                    <property name="spacing">
+                     <number>6</number>
+                    </property>
+                    <property name="leftMargin">
+                     <number>6</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>9</number>
+                    </property>
+                    <property name="rightMargin">
+                     <number>6</number>
+                    </property>
+                    <property name="bottomMargin">
+                     <number>6</number>
+                    </property>
+                    <item>
+                     <layout class="QHBoxLayout" name="comparisonFirstInputLayout">
+                      <item>
+                       <widget class="QLabel" name="comparisonLookbackLabel">
+                        <property name="text">
+                         <string>Lookback:</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QSpinBox" name="comparisonLookbackSpinBox">
+                        <property name="minimum">
+                         <number>1</number>
+                        </property>
+                        <property name="value">
+                         <number>30</number>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="comparisonWindowLabel">
+                        <property name="text">
+                         <string>Window:</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QSpinBox" name="comparisonWindowSpinBox">
+                        <property name="minimum">
+                         <number>1</number>
+                        </property>
+                        <property name="value">
+                         <number>5</number>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_4">
+                        <property name="orientation">
+                         <enum>Qt::Orientation::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>40</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                      <item>
+                       <widget class="QCheckBox" name="comparisonIncludeDefaultCheck">
+                        <property name="enabled">
+                         <bool>false</bool>
+                        </property>
+                        <property name="text">
+                         <string>Include Default</string>
+                        </property>
+                        <property name="checked">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="comparisonNumHoldingsLabel">
+                        <property name="enabled">
+                         <bool>false</bool>
+                        </property>
+                        <property name="text">
+                         <string>Number of Holdings:</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QSpinBox" name="comparisonNumHoldingsSpinBox">
+                        <property name="enabled">
+                         <bool>false</bool>
+                        </property>
+                        <property name="minimum">
+                         <number>1</number>
+                        </property>
+                        <property name="value">
+                         <number>10</number>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                    <item>
+                     <layout class="QHBoxLayout" name="comparisonSecondInputLayout">
+                      <item>
+                       <widget class="QLabel" name="comparisonBenchmarkLabel">
+                        <property name="enabled">
+                         <bool>false</bool>
+                        </property>
+                        <property name="text">
+                         <string>Benchmark:</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QComboBox" name="comparisonBenchmarkComboBox">
+                        <property name="enabled">
+                         <bool>false</bool>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_5">
+                        <property name="orientation">
+                         <enum>Qt::Orientation::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>40</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="comparisonCustomTickersLabel">
+                        <property name="enabled">
+                         <bool>false</bool>
+                        </property>
+                        <property name="text">
+                         <string>Custom Tickers:</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QPlainTextEdit" name="comparisonCustomTickers">
+                        <property name="enabled">
+                         <bool>false</bool>
+                        </property>
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                         <size>
+                          <width>0</width>
+                          <height>10</height>
+                         </size>
+                        </property>
+                        <property name="maximumSize">
+                         <size>
+                          <width>16777215</width>
+                          <height>30</height>
+                         </size>
+                        </property>
+                        <property name="frameShape">
+                         <enum>QFrame::Shape::NoFrame</enum>
+                        </property>
+                        <property name="frameShadow">
+                         <enum>QFrame::Shadow::Plain</enum>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <widget class="Line" name="line_4">
+                    <property name="orientation">
+                     <enum>Qt::Orientation::Vertical</enum>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QHBoxLayout" name="horizontalLayout_3">
+                    <property name="spacing">
+                     <number>9</number>
+                    </property>
+                    <property name="leftMargin">
+                     <number>6</number>
+                    </property>
+                    <property name="topMargin">
+                     <number>9</number>
+                    </property>
+                    <item>
+                     <widget class="QRadioButton" name="RSRatioChoice">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="text">
+                       <string>Relative Strength
+Ratio</string>
+                      </property>
+                      <attribute name="buttonGroup">
+                       <string notr="true">RRGRSMRSButtonGroup</string>
+                      </attribute>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QRadioButton" name="RSMomentumChoice">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="text">
+                       <string>Relative Strength
+Momentum</string>
+                      </property>
+                      <property name="checked">
+                       <bool>false</bool>
+                      </property>
+                      <attribute name="buttonGroup">
+                       <string notr="true">RRGRSMRSButtonGroup</string>
+                      </attribute>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QRadioButton" name="RRGChoice">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>0</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                      <property name="text">
+                       <string>RRG</string>
+                      </property>
+                      <property name="checked">
+                       <bool>true</bool>
+                      </property>
+                      <attribute name="buttonGroup">
+                       <string notr="true">RRGRSMRSButtonGroup</string>
+                      </attribute>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                  <item>
+                   <widget class="Line" name="line_6">
+                    <property name="orientation">
+                     <enum>Qt::Orientation::Vertical</enum>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="timeframeComparisonPlotButton">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>100</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>16777215</width>
+                      <height>40</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Plot</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="Line" name="line_5">
+                  <property name="orientation">
+                   <enum>Qt::Orientation::Horizontal</enum>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <layout class="QHBoxLayout" name="timeframeFirstGraphLayout">
+                  <item>
+                   <widget class="QWebEngineView" name="comparisonDailyGraph">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="url">
+                     <url>
+                      <string>about:blank</string>
+                     </url>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QWebEngineView" name="comparisonWeeklyGraph">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="url">
+                     <url>
+                      <string>about:blank</string>
+                     </url>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QWebEngineView" name="comparisonMonthlyGraph">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="url">
+                     <url>
+                      <string>about:blank</string>
+                     </url>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <layout class="QHBoxLayout" name="timeframeSecondGraphLayout" stretch="50">
+                  <item>
+                   <layout class="QVBoxLayout" name="timeframeLabelsandTables" stretch="0,0">
+                    <item>
+                     <layout class="QHBoxLayout" name="timeframeLabels">
+                      <item>
+                       <widget class="QLabel" name="comparisonDailyTableLabel">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                         <size>
+                          <width>10</width>
+                          <height>10</height>
+                         </size>
+                        </property>
+                        <property name="text">
+                         <string>Daily:</string>
+                        </property>
+                        <property name="textFormat">
+                         <enum>Qt::TextFormat::AutoText</enum>
+                        </property>
+                        <property name="alignment">
+                         <set>Qt::AlignmentFlag::AlignCenter</set>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="comparisonWeeklyTableLabel">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                         <size>
+                          <width>10</width>
+                          <height>10</height>
+                         </size>
+                        </property>
+                        <property name="text">
+                         <string>Weekly:</string>
+                        </property>
+                        <property name="alignment">
+                         <set>Qt::AlignmentFlag::AlignCenter</set>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="comparisonMonthlyTableLabel">
+                        <property name="sizePolicy">
+                         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                          <horstretch>0</horstretch>
+                          <verstretch>0</verstretch>
+                         </sizepolicy>
+                        </property>
+                        <property name="minimumSize">
+                         <size>
+                          <width>10</width>
+                          <height>10</height>
+                         </size>
+                        </property>
+                        <property name="text">
+                         <string>Monthly:</string>
+                        </property>
+                        <property name="alignment">
+                         <set>Qt::AlignmentFlag::AlignCenter</set>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </item>
+                    <item>
+                     <layout class="QHBoxLayout" name="timeframeTables">
+                      <item>
+                       <layout class="QHBoxLayout" name="dailyComparisonLayout">
+                        <item>
+                         <widget class="QTableWidget" name="dailyComparisonTable">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+                      <item>
+                       <layout class="QHBoxLayout" name="weeklyComparisonLayout">
+                        <item>
+                         <widget class="QTableWidget" name="weeklyComparisonTable">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+                      <item>
+                       <layout class="QHBoxLayout" name="monthlyComparisonLayout">
+                        <item>
+                         <widget class="QTableWidget" name="monthlyComparisonTable">
+                          <property name="sizePolicy">
+                           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                            <horstretch>0</horstretch>
+                            <verstretch>0</verstretch>
+                           </sizepolicy>
+                          </property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
            </widget>
           </item>
          </layout>
@@ -1137,4 +1930,8 @@ li.checked::marker { content: &quot;\2612&quot;; }
  </customwidgets>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="sectorIntersectorButtonGroup"/>
+  <buttongroup name="RRGRSMRSButtonGroup"/>
+ </buttongroups>
 </ui>
